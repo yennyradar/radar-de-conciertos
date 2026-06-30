@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Radar de Conciertos</title>
+<meta name="description" content="Conciertos en vivo cerca de ti — todas las regiones de Chile" />
+<meta name="theme-color" content="#dc2626" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   VARIABLES — MODO NOCTURNO (default)
+═══════════════════════════════════════════════ */
+:root{
+  --bg:#09090b;
+  --bg-elevated:#18181b;
+  --bg-card:#1c1c1f;
+  --border:#27272a;
+  --text:#ffffff;
+  --text-dim:#a1a1aa;
+  --text-dimmer:#71717a;
+  --accent:#dc2626;
+  --accent-dim:rgba(220,38,38,.18);
+  --live:#dc2626;
+  --upcoming:#eab308;
+  --finished:#52525b;
+  --radius:14px;
+  --maxw:480px;
+  --shadow:0 4px 20px rgba(0,0,0,.4);
+}
+
+/* ═══════════════════════════════════════════════
+   MODO DIURNO
+═══════════════════════════════════════════════ */
+body.day-mode{
+  --bg:#f4f3f0;
+  --bg-elevated:#ffffff;
+  --bg-card:#ffffff;
+  --border:#e4e4e7;
+  --text:#18181b;
+  --text-dim:#52525b;
+  --text-dimmer:#71717a;
+  --accent:#dc2626;
+  --accent-dim:rgba(220,38,38,.12);
+  --shadow:0 4px 20px rgba(0,0,0,.1);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  transition:background .3s, color .3s;
+}
+
+/* ═══════════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════════ */
+#app{
+  max-width:var(--maxw);
+  margin:0 auto;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  background:var(--bg);
+  position:relative;
+  box-shadow:0 0 40px rgba(0,0,0,.6);
+}
+
+/* ═══════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════ */
+header{
+  padding:12px 14px 10px;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;
+  background:var(--bg);
+  z-index:30;
+}
+header h1{
+  font-size:18px;
+  margin:0 0 10px;
+  display:flex;align-items:center;gap:8px;
+  letter-spacing:.2px;
+}
+header h1 .dot{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 0 0 rgba(220,38,38,.7);
+  animation:dotpulse 1.8s infinite;
+}
+@keyframes dotpulse{
+  0%{box-shadow:0 0 0 0 rgba(220,38,38,.55);}
+  70%{box-shadow:0 0 0 7px rgba(220,38,38,0);}
+  100%{box-shadow:0 0 0 0 rgba(220,38,38,0);}
+}
+.controls-row{display:flex;gap:6px;}
+select#regionSelect{
+  flex:1;
+  background:var(--bg-elevated);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:13px;
+}
+button.iconbtn{
+  background:var(--bg-elevated);
+  border:1px solid var(--border);
+  color:var(--text-dim);
+  border-radius:10px;
+  width:38px;
+  font-size:15px;
+  cursor:pointer;
+  transition:background .15s, color .15s, border-color .15s;
+}
+button.iconbtn.active{color:var(--accent);border-color:var(--accent);}
+button.iconbtn:hover{background:var(--bg-card);}
+
+/* ═══════════════════════════════════════════════
+   MAPA
+═══════════════════════════════════════════════ */
+#map{
+  width:100%;height:280px;
+  background:#111;
+  position:relative;z-index:1;
+}
+.leaflet-popup-content-wrapper{
+  background:var(--bg-card);color:var(--text);
+  border-radius:var(--radius);border:1px solid var(--border);
+  box-shadow:var(--shadow);
+}
+.leaflet-popup-tip{background:var(--bg-card);}
+.leaflet-popup-content{margin:0;width:270px !important;}
+.leaflet-popup-close-button{color:var(--text-dim) !important;font-size:18px !important;top:8px !important;right:8px !important;}
+.pin{position:relative;width:24px;height:24px;}
+.pin-ping{
+  position:absolute;top:0;left:0;width:24px;height:24px;border-radius:50%;
+  background:var(--accent);opacity:.65;
+  animation:pinping 1.6s cubic-bezier(0,0,.2,1) infinite;
+}
+@keyframes pinping{
+  0%{transform:scale(.4);opacity:.75;}
+  75%,100%{transform:scale(1.9);opacity:0;}
+}
+.pin-dot{
+  position:absolute;top:5px;left:5px;width:14px;height:14px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 0 2px #000;
+}
+.pin--upcoming .pin-dot{background:var(--upcoming);}
+.pin--idle .pin-dot{background:var(--finished);}
+.user-dot{
+  width:16px;height:16px;border-radius:50%;
+  background:#3b82f6;border:3px solid #fff;
+  box-shadow:0 0 0 4px rgba(59,130,246,.35);
+}
+
+/* ═══════════════════════════════════════════════
+   POPUP CONTENIDO
+═══════════════════════════════════════════════ */
+.pop-poster{width:100%;height:110px;object-fit:cover;display:block;background:var(--bg-elevated);border-radius:var(--radius) var(--radius) 0 0;}
+.pop-header-bar{
+  width:100%;height:70px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;border-radius:var(--radius) var(--radius) 0 0;
+}
+.pop-header-bar.live-bar{background:rgba(220,38,38,.2);}
+.pop-header-bar.upcoming-bar{background:rgba(234,179,8,.15);}
+.pop-header-bar.finished-bar{background:rgba(82,82,91,.15);}
+.pop-body{padding:11px 12px 12px;}
+.pop-name{font-size:15px;font-weight:700;margin:0 0 3px;}
+.pop-venue{font-size:12.5px;color:var(--text-dim);margin:0 0 7px;}
+.pop-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;}
+.pop-meta-line{font-size:12px;color:var(--text-dimmer);margin:3px 0;}
+.pop-price{
+  display:inline-block;font-size:11.5px;font-weight:700;
+  background:rgba(234,179,8,.15);color:#d97706;
+  border-radius:6px;padding:2px 7px;margin:4px 0;
+}
+.pop-countdown{font-size:11.5px;color:var(--upcoming);font-weight:600;margin:2px 0;}
+.pop-section-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dimmer);margin:10px 0 5px;font-weight:700;}
+.pop-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px;}
+.pop-actions a,.pop-actions button{
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  text-decoration:none;font-size:11px;font-weight:600;
+  background:var(--bg-elevated);color:var(--text);
+  border:1px solid var(--border);border-radius:8px;padding:7px 4px;
+  cursor:pointer;
+}
+.pop-actions a.full,.pop-actions button.full{grid-column:1/-1;}
+.pop-actions a.buy{
+  background:var(--accent);border-color:var(--accent);color:#fff;
+  grid-column:1/-1;padding:10px 4px;font-size:13px;
+}
+.pop-actions a:hover,.pop-actions button:hover{opacity:.85;}
+.star-row{display:flex;gap:3px;margin:8px 0 4px;}
+.star{font-size:20px;cursor:pointer;transition:transform .1s;user-select:none;}
+.star:hover{transform:scale(1.2);}
+.star-label{font-size:11px;color:var(--text-dimmer);margin-left:4px;align-self:center;}
+.pop-cal-row{margin:6px 0;}
+.pop-cal-link{
+  font-size:11.5px;color:var(--text-dim);text-decoration:none;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.pop-cal-link:hover{color:var(--text);}
+
+/* ═══════════════════════════════════════════════
+   LISTA DE CONCIERTOS
+═══════════════════════════════════════════════ */
+main{flex:1;padding:12px 14px 100px;}
+.section-title{
+  font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text-dimmer);margin:16px 0 7px;
+}
+.empty-state{
+  color:var(--text-dimmer);font-size:14px;text-align:center;
+  padding:30px 10px;border:1px dashed var(--border);border-radius:var(--radius);
+}
+.card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:11px;margin-bottom:9px;
+  display:flex;gap:10px;cursor:pointer;
+  transition:border-color .15s, box-shadow .15s;
+}
+.card:hover{border-color:var(--accent);box-shadow:0 2px 12px var(--accent-dim);}
+.card-left{width:54px;height:54px;flex-shrink:0;position:relative;}
+.card img.poster{width:54px;height:54px;border-radius:10px;object-fit:cover;background:var(--bg-elevated);}
+.card-placeholder{
+  width:54px;height:54px;border-radius:10px;
+  background:var(--bg-elevated);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;position:relative;overflow:hidden;
+}
+.card-placeholder.live-ph{background:rgba(220,38,38,.15);}
+.card-placeholder.upcoming-ph{background:rgba(234,179,8,.12);}
+.card-placeholder.finished-ph{background:rgba(82,82,91,.15);}
+
+/* Mascot animations */
+.mascot-emoji{display:inline-block;}
+.mascot-emoji.live-anim{animation:mascot-dance .45s ease-in-out infinite alternate;}
+.mascot-emoji.upcoming-anim{animation:mascot-bounce .75s ease-in-out infinite;}
+.mascot-emoji.finished-anim{opacity:.55;}
+@keyframes mascot-dance{
+  from{transform:rotate(-14deg) scale(1);}
+  to{transform:rotate(14deg) scale(1.12);}
+}
+@keyframes mascot-bounce{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-7px);}
+}
+
+/* Live pulse ring on poster */
+.live-ring{
+  position:absolute;inset:-3px;border-radius:13px;
+  border:2px solid var(--accent);
+  animation:live-ring-pulse 1.4s ease-in-out infinite;
+}
+@keyframes live-ring-pulse{
+  0%,100%{opacity:.9;transform:scale(1);}
+  50%{opacity:.3;transform:scale(1.04);}
+}
+
+.card .info{flex:1;min-width:0;}
+.card .info .name{
+  font-size:14px;font-weight:600;margin:0 0 2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.card .info .venue{
+  font-size:12px;color:var(--text-dim);margin:0 0 5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.card-meta-row{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:3px;}
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;letter-spacing:.04em;
+  padding:2px 7px;border-radius:20px;
+}
+.badge.live{background:var(--accent-dim);color:#ff6b6b;}
+.badge.upcoming{background:rgba(234,179,8,.15);color:var(--upcoming);}
+.badge.finished{background:rgba(82,82,91,.25);color:var(--text-dimmer);}
+.badge .bdot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.distance{font-size:11px;color:var(--text-dimmer);}
+.travel-time{font-size:11px;color:var(--text-dimmer);}
+.card-countdown{font-size:11px;color:var(--upcoming);font-weight:600;margin-top:2px;}
+.card-price{font-size:10.5px;color:#d97706;font-weight:600;}
+.card-stars{display:flex;gap:1px;margin-top:3px;}
+.card-stars .s{font-size:13px;cursor:pointer;user-select:none;}
+.card-admin-row{display:flex;gap:5px;margin-top:5px;}
+.card-edit-btn{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-dim);cursor:pointer;}
+.card-del-btn{font-size:11px;padding:3px 7px;border-radius:6px;border:1px solid #7f1d1d;background:rgba(220,38,38,.1);color:#f87171;cursor:pointer;}
+
+/* ═══════════════════════════════════════════════
+   FAB
+═══════════════════════════════════════════════ */
+footer.fab-wrap[hidden]{display:none !important;}
+footer.fab-wrap{
+  position:fixed;bottom:20px;left:0;right:0;
+  display:flex;justify-content:center;
+  pointer-events:none;z-index:40;
+}
+footer.fab-wrap .inner{width:100%;max-width:var(--maxw);display:flex;justify-content:flex-end;padding:0 16px;}
+#addBtn{
+  pointer-events:auto;
+  background:var(--accent);color:#fff;border:none;
+  width:54px;height:54px;border-radius:50%;
+  font-size:26px;font-weight:300;
+  box-shadow:0 6px 18px rgba(220,38,38,.45);cursor:pointer;
+}
+
+/* ═══════════════════════════════════════════════
+   MODALES
+═══════════════════════════════════════════════ */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
+  display:flex;align-items:stretch;justify-content:center;z-index:50;
+}
+.modal-backdrop[hidden]{display:none;}
+.modal{
+  width:100%;max-width:var(--maxw);background:var(--bg-elevated);
+  height:100%;max-height:100%;overflow-y:auto;
+  padding:18px 16px 100px;-webkit-overflow-scrolling:touch;
+}
+.modal h2{margin:0 0 12px;font-size:17px;}
+.modal label{display:block;font-size:12px;color:var(--text-dim);margin:11px 0 4px;}
+.modal input,.modal select,.modal textarea{
+  width:100%;background:var(--bg-card);color:var(--text);
+  border:1px solid var(--border);border-radius:9px;padding:10px;font-size:14px;
+}
+.modal .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.modal-actions{display:flex;gap:8px;margin-top:18px;}
+.modal-actions button{
+  flex:1;padding:12px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer;
+}
+.btn-cancel{background:var(--bg-card);color:var(--text-dim);border:1px solid var(--border) !important;}
+.btn-save{background:var(--accent);color:#fff;}
+.hint{font-size:11px;color:var(--text-dimmer);margin-top:3px;}
+
+/* Alarm modal */
+#alarmModal{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  display:flex;align-items:flex-end;justify-content:center;z-index:60;
+}
+#alarmModal[hidden]{display:none;}
+.alarm-sheet{
+  width:100%;max-width:var(--maxw);background:var(--bg-elevated);
+  border-radius:20px 20px 0 0;padding:20px 16px 36px;
+}
+.alarm-sheet h3{margin:0 0 6px;font-size:16px;}
+.alarm-sheet .concert-name{font-size:13px;color:var(--text-dim);margin:0 0 14px;}
+.alarm-option{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;border-radius:12px;margin-bottom:6px;
+  background:var(--bg-card);border:1px solid var(--border);
+  cursor:pointer;font-size:14px;transition:border-color .15s;
+}
+.alarm-option:hover{border-color:var(--accent);}
+.alarm-option.selected{border-color:var(--accent);background:var(--accent-dim);}
+.alarm-icon{font-size:22px;width:30px;text-align:center;}
+
+/* ═══════════════════════════════════════════════
+   BANNER DE INSTALACIÓN
+═══════════════════════════════════════════════ */
+#installBanner{
+  position:fixed;bottom:0;left:0;right:0;
+  display:flex;justify-content:center;
+  z-index:80;pointer-events:none;
+}
+#installBanner[hidden]{display:none;}
+.install-sheet{
+  width:100%;max-width:var(--maxw);
+  background:var(--bg-elevated);
+  border-top:1px solid var(--border);
+  border-radius:20px 20px 0 0;
+  padding:16px 16px 32px;
+  pointer-events:auto;
+  box-shadow:0 -8px 30px rgba(0,0,0,.35);
+  animation:slide-up .32s cubic-bezier(.22,1,.36,1);
+}
+@keyframes slide-up{
+  from{transform:translateY(100%);}
+  to{transform:translateY(0);}
+}
+.install-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.install-icon{width:48px;height:48px;border-radius:12px;flex-shrink:0;}
+.install-title{font-size:15px;font-weight:700;margin:0 0 2px;}
+.install-sub{font-size:12px;color:var(--text-dim);margin:0;}
+.install-close{
+  margin-left:auto;background:none;border:none;
+  color:var(--text-dimmer);font-size:22px;cursor:pointer;
+  padding:4px 6px;line-height:1;
+}
+.install-actions{display:flex;gap:8px;}
+.btn-install{
+  flex:1;padding:13px;border-radius:12px;border:none;
+  background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 14px rgba(220,38,38,.4);
+}
+.btn-install-later{
+  padding:13px 16px;border-radius:12px;
+  background:var(--bg-card);color:var(--text-dim);
+  border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;
+}
+.ios-steps{margin:10px 0 14px;padding:0;list-style:none;}
+.ios-steps li{
+  font-size:13px;color:var(--text-dim);
+  display:flex;align-items:center;gap:8px;
+  padding:6px 0;border-bottom:1px solid var(--border);
+}
+.ios-steps li:last-child{border-bottom:none;}
+.ios-steps .step-num{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--accent-dim);color:var(--accent);
+  font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.ios-share-icon{
+  display:inline-block;font-size:17px;
+  animation:share-bounce .9s ease-in-out infinite;
+}
+@keyframes share-bounce{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-4px);}
+}
+
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  background:#18181b;border:1px solid var(--border);color:var(--text);
+  padding:10px 16px;border-radius:30px;font-size:13px;z-index:70;
+  box-shadow:0 8px 20px rgba(0,0,0,.5);white-space:nowrap;
+}
+.toast[hidden]{display:none;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header>
+    <h1><span class="dot"></span> Radar de Conciertos</h1>
+    <div class="controls-row">
+      <select id="regionSelect"></select>
+      <button class="iconbtn" id="themeBtn" title="Cambiar modo día/noche">🌙</button>
+      <button class="iconbtn" id="notifBtn" title="Activar notificaciones">🔔</button>
+      <button class="iconbtn" id="locateBtn" title="Centrar en mi ubicación">📍</button>
+      <button class="iconbtn" id="loginBtn" title="Iniciar sesión (solo admin)">🔑</button>
+    </div>
+  </header>
+
+  <!-- MAPA -->
+  <div id="map"></div>
+
+  <!-- LISTA -->
+  <main>
+    <div id="listContainer"></div>
+  </main>
+
+  <!-- FAB ADMIN -->
+  <footer class="fab-wrap" id="fabWrap" hidden>
+    <div class="inner"><button id="addBtn" title="Agregar concierto">+</button></div>
+  </footer>
+
+  <!-- MODAL: LOGIN -->
+  <div class="modal-backdrop" id="loginBackdrop" hidden>
+    <div class="modal">
+      <h2>Iniciar sesión de administrador</h2>
+      <p class="hint">Solo el administrador puede agregar conciertos. Los demás visitantes solo pueden verlos.</p>
+      <form id="loginForm">
+        <label>Correo</label>
+        <input type="email" id="l_email" required autocomplete="username" />
+        <label>Contraseña</label>
+        <input type="password" id="l_password" required autocomplete="current-password" />
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" id="loginCancelBtn">Cancelar</button>
+          <button type="submit" class="btn-save" id="loginSubmitBtn">Iniciar sesión</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: AGREGAR CONCIERTO -->
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <div class="modal">
+      <h2>Agregar concierto</h2>
+      <form id="concertForm">
+        <label>Nombre del concierto / artista *</label>
+        <input type="text" id="f_name" required />
+
+        <label>Lugar (venue) *</label>
+        <input type="text" id="f_venue" required />
+
+        <label>Región / ciudad *</label>
+        <select id="f_city" required></select>
+
+        <label>Dirección (opcional)</label>
+        <input type="text" id="f_address" />
+
+        <div class="row2">
+          <div>
+            <label>Latitud *</label>
+            <input type="text" id="f_lat" inputmode="decimal" required placeholder="-33.4489" />
+          </div>
+          <div>
+            <label>Longitud *</label>
+            <input type="text" id="f_lng" inputmode="decimal" required placeholder="-70.6693" />
+          </div>
+        </div>
+        <p class="hint">💡 Busca el recinto en Google Maps → clic derecho → "¿Qué hay aquí?" para ver lat/lng.</p>
+
+        <div class="row2">
+          <div>
+            <label>Inicia *</label>
+            <input type="datetime-local" id="f_starts" required />
+          </div>
+          <div>
+            <label>Termina *</label>
+            <input type="datetime-local" id="f_ends" required />
+          </div>
+        </div>
+
+        <label>Link para comprar entradas *</label>
+        <input type="url" id="f_ticket" required placeholder="https://..." />
+
+        <label>Precio / nota de precio (opcional)</label>
+        <input type="text" id="f_price" placeholder="Desde $15.000" />
+
+        <label>Instagram del recinto o artista (opcional)</label>
+        <input type="text" id="f_instagram" placeholder="@nombre_recinto o link completo" />
+
+        <label>Estacionamiento (opcional)</label>
+        <input type="text" id="f_parking" placeholder="Estacionamiento pagado al frente" />
+
+        <label>Bares / restaurantes / previas cercanas (opcional)</label>
+        <textarea id="f_nearby_tips" rows="2" placeholder="Ej: Bar La Piojera (5 min) — Empanadas El Rincón (frente al recinto)"></textarea>
+        <p class="hint">Se muestra en el popup para que la gente sepa dónde ir antes del show.</p>
+
+        <label>Link del afiche / imagen del evento (opcional)</label>
+        <input type="url" id="f_poster" placeholder="https://..." />
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" id="cancelBtn">Cancelar</button>
+          <button type="submit" class="btn-save" id="saveBtn">Guardar concierto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ALARMA/RECORDATORIO -->
+  <div id="alarmModal" hidden>
+    <div class="alarm-sheet">
+      <h3>🔔 Configurar recordatorio</h3>
+      <p class="concert-name" id="alarmConcertName"></p>
+      <div id="alarmOptions"></div>
+      <div class="modal-actions" style="margin-top:10px;">
+        <button class="btn-cancel" id="alarmCancelBtn">Cancelar</button>
+        <button class="btn-save" id="alarmConfirmBtn">Activar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<!-- BANNER DE INSTALACIÓN -->
+<div id="installBanner" hidden>
+  <div class="install-sheet" id="installSheet">
+    <!-- contenido inyectado por JS según plataforma -->
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONFIGURACIÓN
+═══════════════════════════════════════════════ */
+const SUPABASE_URL = "https://outtzlwgzijxtxehqjgz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_tN0p9r8CWK35ehfJiPYbCg_9vFyRWq4";
+const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* 16 regiones de Chile */
+const REGIONS = [
+  { key:"arica_parinacota", label:"Arica y Parinacota",        aliases:["arica"] },
+  { key:"tarapaca",         label:"Tarapacá",                  aliases:["iquique"] },
+  { key:"antofagasta",      label:"Antofagasta",               aliases:["antofagasta"] },
+  { key:"atacama",          label:"Atacama",                   aliases:["copiapo"] },
+  { key:"coquimbo",         label:"Coquimbo",                  aliases:["coquimbo","la serena"] },
+  { key:"valparaiso",       label:"Valparaíso",                aliases:["valparaiso","vina del mar","viña del mar"] },
+  { key:"metropolitana",    label:"Metropolitana de Santiago", aliases:["santiago"] },
+  { key:"ohiggins",         label:"O'Higgins",                 aliases:["rancagua"] },
+  { key:"maule",            label:"Maule",                     aliases:["talca"] },
+  { key:"nuble",            label:"Ñuble",                     aliases:["chillan"] },
+  { key:"biobio",           label:"Biobío",                    aliases:["concepcion","biobio"] },
+  { key:"araucania",        label:"La Araucanía",              aliases:["temuco"] },
+  { key:"los_rios",         label:"Los Ríos",                  aliases:["valdivia"] },
+  { key:"los_lagos",        label:"Los Lagos",                 aliases:["puerto montt"] },
+  { key:"aysen",            label:"Aysén",                     aliases:["coyhaique"] },
+  { key:"magallanes",       label:"Magallanes",                aliases:["punta arenas"] },
+];
+
+/* Recintos conocidos para autocompletar formulario admin */
+const KNOWN_VENUES = [
+  // Santiago
+  {n:"Movistar Arena",lat:-33.4580,lng:-70.6560,city:"santiago"},
+  {n:"Claro Arena",lat:-33.4580,lng:-70.6560,city:"santiago"},
+  {n:"Teatro Caupolicán",lat:-33.4570,lng:-70.6480,city:"santiago"},
+  {n:"Teatro Coliseo",lat:-33.4390,lng:-70.6440,city:"santiago"},
+  {n:"Estadio Nacional",lat:-33.4648,lng:-70.6095,city:"santiago"},
+  {n:"Estadio Monumental",lat:-33.4970,lng:-70.6148,city:"santiago"},
+  {n:"Espacio Riesco",lat:-33.3930,lng:-70.7780,city:"santiago"},
+  {n:"Arena Monticello",lat:-33.9830,lng:-70.9330,city:"santiago"},
+  {n:"Parque O'Higgins",lat:-33.4610,lng:-70.6680,city:"santiago"},
+  {n:"Club Hípico",lat:-33.4660,lng:-70.6760,city:"santiago"},
+  {n:"Estadio Santa Laura",lat:-33.4380,lng:-70.6560,city:"santiago"},
+  {n:"Teatro Municipal de Santiago",lat:-33.4420,lng:-70.6520,city:"santiago"},
+  // Valparaíso
+  {n:"Teatro Trotamundos",lat:-33.0490,lng:-71.6180,city:"valparaiso"},
+  {n:"Club Segundo Piso",lat:-33.0460,lng:-71.6140,city:"valparaiso"},
+  {n:"Teatro Mauri",lat:-33.0455,lng:-71.6195,city:"valparaiso"},
+  {n:"Sala Rivoli",lat:-33.0465,lng:-71.6160,city:"valparaiso"},
+  {n:"VTP - Valparaíso Teatro del Puerto",lat:-33.0380,lng:-71.6280,city:"valparaiso"},
+  {n:"Teatro Municipal de Valparaíso",lat:-33.0472,lng:-71.6127,city:"valparaiso"},
+  // Viña del Mar
+  {n:"Anfiteatro de Viña del Mar",lat:-33.0153,lng:-71.5500,city:"vina del mar"},
+  {n:"Estadio Sausalito",lat:-33.0310,lng:-71.5500,city:"vina del mar"},
+  {n:"Enjoy Viña del Mar",lat:-33.0240,lng:-71.5530,city:"vina del mar"},
+  // Concepción
+  {n:"Estadio Regional de Concepción",lat:-36.8270,lng:-73.0500,city:"concepcion"},
+  // Temuco
+  {n:"Teatro Regional Temuco",lat:-38.7359,lng:-72.5904,city:"temuco"},
+];
+
+/* Mascotas por estado */
+const MASCOTS = { en_vivo:"🕺", proximamente:"🐱", finalizado:"🐶" };
+
+/* ═══════════════════════════════════════════════
+   ESTADO GLOBAL
+═══════════════════════════════════════════════ */
+let concerts = [];
+let userLat = null, userLng = null;
+let selectedRegion = "todas";
+let map, markersLayer, userMarker;
+let previousStatuses = {};
+let notifEnabled = false;
+let alarmTimeouts = {};
+let pendingAlarmConcert = null;
+let selectedAlarmOption = null;
+let editingId = null;
+
+/* ═══════════════════════════════════════════════
+   UTILIDADES
+═══════════════════════════════════════════════ */
+function normalize(str){
+  return (str||"").toString().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
+}
+
+function getStatus(c){
+  const now = new Date(), start = new Date(c.starts_at), end = new Date(c.ends_at);
+  if(now>=start && now<=end) return "en_vivo";
+  if(now<start) return "proximamente";
+  return "finalizado";
+}
+function statusLabel(s){ return s==="en_vivo"?"EN VIVO":s==="proximamente"?"PRÓXIMAMENTE":"FINALIZADO"; }
+function statusClass(s){ return s==="en_vivo"?"live":s==="proximamente"?"upcoming":"finished"; }
+
+function distanceKm(lat1,lon1,lat2,lon2){
+  if(lat1==null||lon1==null) return null;
+  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function distanceLabel(km){
+  if(km==null) return "";
+  return km<1?`${Math.round(km*1000)} m`:`${km.toFixed(1)} km`;
+}
+function travelTimeLabel(km){
+  if(km==null) return "";
+  if(km<0.5) return `~${Math.round(km/5*60)} min a pie`;
+  if(km<8)   return `~${Math.round(km/28*60)} min en auto`;
+  if(km<40)  return `~${Math.round(km/50*60)} min en auto`;
+  const h = km/80;
+  if(h<1)    return `~${Math.round(h*60)} min en auto`;
+  return `~${h.toFixed(1).replace(".0","")}h en auto`;
+}
+
+function countdownLabel(starts_at){
+  const diff = new Date(starts_at)-new Date();
+  if(diff<=0) return null;
+  const days=Math.floor(diff/86400000), hrs=Math.floor((diff%86400000)/3600000), mins=Math.floor((diff%3600000)/60000);
+  if(days>=2) return `en ${days} días`;
+  if(days===1) return `mañana · ${hrs}h restantes`;
+  if(hrs>=1) return `en ${hrs}h ${mins}m`;
+  if(mins>=1) return `en ${mins} min — ¡ya casi!`;
+  return "¡está por comenzar!";
+}
+
+function formatDateTime(iso){
+  const d=new Date(iso);
+  return d.toLocaleDateString("es-CL",{weekday:"short",day:"numeric",month:"short"})
+        +" · "+d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+}
+
+function regionMatches(c,key){
+  if(key==="todas") return true;
+  const region=REGIONS.find(r=>r.key===key);
+  if(!region) return true;
+  const city=normalize(c.city);
+  return city===region.key||region.aliases.some(a=>normalize(a)===city);
+}
+
+function buildInstagramUrl(v){
+  if(!v) return null;
+  v=v.trim();
+  if(v.startsWith("http")) return v;
+  return `https://instagram.com/${v.replace(/^@/,"")}`;
+}
+
+function googleCalendarUrl(c){
+  const start=new Date(c.starts_at), end=new Date(c.ends_at);
+  const fmt=d=>d.toISOString().replace(/[-:]/g,"").split(".")[0]+"Z";
+  const params=new URLSearchParams({
+    action:"TEMPLATE",
+    text:c.name,
+    dates:`${fmt(start)}/${fmt(end)}`,
+    details:`Venue: ${c.venue}${c.ticket_url?"\nEntradas: "+c.ticket_url:""}`,
+    location:`${c.lat},${c.lng}`,
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
+
+function hotelSearchUrl(c){
+  return `https://www.google.com/maps/search/hoteles+cerca/@${c.lat},${c.lng},14z`;
+}
+
+function escapeHtml(str){
+  const d=document.createElement("div");d.textContent=str||"";return d.innerHTML;
+}
+
+/* ═══════════════════════════════════════════════
+   CALIFICACIONES (localStorage)
+═══════════════════════════════════════════════ */
+function getRating(id){ return parseInt(localStorage.getItem(`rating_${id}`)||0); }
+function setRating(id,val){ localStorage.setItem(`rating_${id}`,val); }
+function starsHtml(id, size="card"){
+  const r=getRating(id);
+  const cls=size==="popup"?"star":"s";
+  const sz=size==="popup"?"":"";
+  return Array.from({length:5},(_,i)=>
+    `<span class="${cls}" data-id="${id}" data-val="${i+1}" title="${i+1} estrella${i?'s':''}">${i<r?"⭐":"☆"}</span>`
+  ).join("");
+}
+function attachStarListeners(container){
+  container.querySelectorAll("[data-val]").forEach(el=>{
+    el.addEventListener("click",()=>{
+      const id=el.dataset.id, val=parseInt(el.dataset.val);
+      setRating(id,val);
+      render();
+      showToast(val===5?"⭐ ¡5 estrellas! Gracias por calificar":
+                val>=3?"⭐ Calificación guardada":"✓ Calificado");
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   MODO DÍA / NOCHE
+═══════════════════════════════════════════════ */
+let isDayMode = false;
+let themeManual = false;
+
+function isNaturallyDay(){
+  const h=new Date().getHours();
+  return h>=6 && h<20;
+}
+function applyTheme(day){
+  isDayMode=day;
+  document.body.classList.toggle("day-mode",day);
+  document.getElementById("themeBtn").textContent=day?"🌙":"☀️";
+  document.getElementById("themeBtn").title=day?"Cambiar a modo noche":"Cambiar a modo día";
+}
+function initTheme(){
+  const saved=localStorage.getItem("themeMode");
+  if(saved==="day"){themeManual=true;applyTheme(true);}
+  else if(saved==="night"){themeManual=true;applyTheme(false);}
+  else{applyTheme(isNaturallyDay());}
+}
+document.getElementById("themeBtn").addEventListener("click",()=>{
+  themeManual=true;
+  applyTheme(!isDayMode);
+  localStorage.setItem("themeMode",isDayMode?"day":"night");
+});
+// Auto-switch each minute if not manual
+setInterval(()=>{ if(!themeManual) applyTheme(isNaturallyDay()); },60000);
+
+/* ═══════════════════════════════════════════════
+   SUPABASE
+═══════════════════════════════════════════════ */
+async function fetchConcerts(){
+  const {data,error}=await supa.from("concerts").select("*").order("starts_at",{ascending:true});
+  if(error){ console.error(error); showToast("No se pudieron cargar los conciertos."); return; }
+  checkForNewlyLive(data);
+  concerts=data;
+  render();
+}
+async function insertConcert(payload){
+  const {error}=await supa.from("concerts").insert([payload]);
+  if(error) throw error;
+}
+async function updateConcert(id,payload){
+  const {error}=await supa.from("concerts").update(payload).eq("id",id);
+  if(error) throw error;
+}
+async function deleteConcert(id){
+  const {error}=await supa.from("concerts").delete().eq("id",id);
+  if(error) throw error;
+}
+
+/* ═══════════════════════════════════════════════
+   NOTIFICACIONES
+═══════════════════════════════════════════════ */
+function checkForNewlyLive(newData){
+  newData.forEach(c=>{
+    const prev=previousStatuses[c.id], now=getStatus(c);
+    if(notifEnabled && prev && prev!=="en_vivo" && now==="en_vivo") notifyLive(c);
+    previousStatuses[c.id]=now;
+  });
+}
+function notifyLive(c){
+  playBeep();
+  if("Notification" in window && Notification.permission==="granted"){
+    new Notification("🔴 "+c.name+" está EN VIVO",{
+      body:c.venue+" — toca para ver cómo llegar",icon:"icons/icon-192.png"
+    });
+  }
+  showToast(`🔴 ${c.name} acaba de empezar en ${c.venue}`);
+}
+function playBeep(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator(), gain=ctx.createGain();
+    osc.type="sine";osc.frequency.value=880;gain.gain.value=0.15;
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.start();
+    osc.frequency.exponentialRampToValueAtTime(440,ctx.currentTime+0.35);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+    osc.stop(ctx.currentTime+0.42);
+  }catch(e){}
+}
+document.getElementById("notifBtn").addEventListener("click",async()=>{
+  if(!("Notification" in window)){showToast("Tu navegador no soporta notificaciones.");return;}
+  const perm=await Notification.requestPermission();
+  notifEnabled=perm==="granted";
+  document.getElementById("notifBtn").classList.toggle("active",notifEnabled);
+  showToast(notifEnabled?"Notificaciones activadas 🔔":"No se activaron las notificaciones");
+});
+
+/* ═══════════════════════════════════════════════
+   ALARMAS / RECORDATORIOS
+═══════════════════════════════════════════════ */
+const ALARM_OPTIONS=[
+  {id:"30m", label:"30 minutos antes",    icon:"⏰", ms:30*60*1000},
+  {id:"1h",  label:"1 hora antes",        icon:"🕐", ms:60*60*1000},
+  {id:"3h",  label:"3 horas antes",       icon:"🕒", ms:3*60*60*1000},
+  {id:"1d",  label:"1 día antes",         icon:"📅", ms:24*60*60*1000},
+];
+
+function openAlarmModal(concert){
+  pendingAlarmConcert=concert;
+  selectedAlarmOption=null;
+  document.getElementById("alarmConcertName").textContent=concert.name+" — "+concert.venue;
+  const container=document.getElementById("alarmOptions");
+  container.innerHTML=ALARM_OPTIONS.map(opt=>`
+    <div class="alarm-option" data-alarm="${opt.id}">
+      <span class="alarm-icon">${opt.icon}</span>
+      <span>${opt.label}</span>
+    </div>
+  `).join("");
+  container.querySelectorAll(".alarm-option").forEach(el=>{
+    el.addEventListener("click",()=>{
+      container.querySelectorAll(".alarm-option").forEach(e=>e.classList.remove("selected"));
+      el.classList.add("selected");
+      selectedAlarmOption=ALARM_OPTIONS.find(o=>o.id===el.dataset.alarm);
+    });
+  });
+  document.getElementById("alarmModal").hidden=false;
+}
+document.getElementById("alarmCancelBtn").addEventListener("click",()=>{
+  document.getElementById("alarmModal").hidden=true;
+});
+document.getElementById("alarmConfirmBtn").addEventListener("click",async()=>{
+  if(!selectedAlarmOption){showToast("Selecciona cuánto tiempo antes.");return;}
+  const c=pendingAlarmConcert;
+  const fireAt=new Date(c.starts_at).getTime()-selectedAlarmOption.ms;
+  const delay=fireAt-Date.now();
+  document.getElementById("alarmModal").hidden=true;
+  if(delay<=0){showToast("⚠️ Ese momento ya pasó. El concierto está muy próximo.");return;}
+  if("Notification" in window){
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){showToast("Activa las notificaciones primero (botón 🔔).");return;}
+  }
+  if(alarmTimeouts[c.id]) clearTimeout(alarmTimeouts[c.id]);
+  alarmTimeouts[c.id]=setTimeout(()=>{
+    playBeep();
+    if("Notification" in window && Notification.permission==="granted"){
+      new Notification("🔔 Recordatorio: "+c.name,{
+        body:selectedAlarmOption.label.replace("antes","— "+c.venue),
+        icon:"icons/icon-192.png"
+      });
+    }
+    showToast(`🔔 Recordatorio: ${c.name} — ${selectedAlarmOption.label}`);
+  },delay);
+  const h=Math.round(delay/3600000*10)/10;
+  showToast(`✅ Recordatorio activado: ${selectedAlarmOption.label} antes de ${c.name}`);
+});
+
+/* ═══════════════════════════════════════════════
+   MAPA
+═══════════════════════════════════════════════ */
+function initMap(){
+  map=L.map("map",{zoomControl:true,attributionControl:true}).setView([-33.45,-70.66],5);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,attribution:"© OpenStreetMap"
+  }).addTo(map);
+  markersLayer=L.layerGroup().addTo(map);
+}
+
+function pinIcon(status){
+  const cls=status==="en_vivo"?"":status==="proximamente"?" pin--upcoming":" pin--idle";
+  const html=status!=="finalizado"
+    ?`<div class="pin${cls}"><span class="pin-ping"></span><span class="pin-dot"></span></div>`
+    :`<div class="pin pin--idle"><span class="pin-dot"></span></div>`;
+  return L.divIcon({html,className:"",iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]});
+}
+
+function popupHtml(c,status,distKm){
+  const ig=buildInstagramUrl(c.instagram);
+  const carUrl=`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
+  const transitUrl=`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=transit`;
+  const countdown=status==="proximamente"?countdownLabel(c.starts_at):null;
+  const rating=getRating(c.id);
+  const starsEl=Array.from({length:5},(_,i)=>
+    `<span class="star" data-id="${c.id}" data-val="${i+1}">${i<rating?"⭐":"☆"}</span>`
+  ).join("")+`<span class="star-label">${rating?rating+" / 5":"Califica este evento"}</span>`;
+
+  return `
+    ${c.poster_url
+      ?`<img class="pop-poster" src="${escapeHtml(c.poster_url)}" alt=""
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="pop-header-bar ${statusClass(status)}-bar" style="display:none">
+          <span style="font-size:44px">${MASCOTS[status]}</span>
+        </div>`
+      :`<div class="pop-header-bar ${statusClass(status)}-bar">
+          <span style="font-size:44px">${MASCOTS[status]}</span>
+        </div>`}
+    <div class="pop-body">
+      <p class="pop-name">${escapeHtml(c.name)}</p>
+      <p class="pop-venue">${escapeHtml(c.venue)}</p>
+      <div class="pop-row">
+        <span class="badge ${statusClass(status)}"><span class="bdot"></span>${statusLabel(status)}</span>
+        ${distKm!=null?`<span style="font-size:11px;color:var(--text-dimmer)">📍 ${distanceLabel(distKm)} · ${travelTimeLabel(distKm)}</span>`:""}
+      </div>
+      ${countdown?`<p class="pop-countdown">⏳ ${countdown}</p>`:""}
+      <p class="pop-meta-line">📅 ${formatDateTime(c.starts_at)}</p>
+      ${c.price_note?`<span class="pop-price">💰 ${escapeHtml(c.price_note)}</span>`:""}
+      ${c.parking_note?`<p class="pop-meta-line">🚗 ${escapeHtml(c.parking_note)}</p>`:""}
+      ${c.nearby_tips?`<p class="pop-meta-line">🍻 <strong>Antes del show:</strong> ${escapeHtml(c.nearby_tips)}</p>`:""}
+
+      <p class="pop-section-title">Cómo llegar</p>
+      <div class="pop-actions">
+        <a href="${carUrl}" target="_blank" rel="noopener">🚗 Auto</a>
+        <a href="${transitUrl}" target="_blank" rel="noopener">🚌 Transporte</a>
+        <a href="https://www.recorrido.cl/" target="_blank" rel="noopener">🚍 Bus regional</a>
+        <a href="https://www.efe.cl/" target="_blank" rel="noopener">🚆 Tren</a>
+        <a href="${hotelSearchUrl(c)}" target="_blank" rel="noopener" class="full">🏨 Hoteles cercanos</a>
+        ${ig?`<a href="${ig}" target="_blank" rel="noopener" class="full">📷 Instagram del recinto</a>`:""}
+      </div>
+
+      <p class="pop-section-title">Tu experiencia</p>
+      <div class="star-row" id="stars_${c.id}">${starsEl}</div>
+      <div class="pop-cal-row">
+        <a class="pop-cal-link" href="${googleCalendarUrl(c)}" target="_blank" rel="noopener">
+          📆 Agregar al calendario de Google
+        </a>
+      </div>
+      <button class="alarm-popup-btn" data-cid="${c.id}"
+        style="background:var(--bg-elevated);border:1px solid var(--border);
+               color:var(--text);border-radius:8px;padding:7px 14px;font-size:12px;
+               cursor:pointer;width:100%;margin-top:4px;font-weight:600;">
+        🔔 Configurar recordatorio
+      </button>
+
+      <div class="pop-actions" style="margin-top:8px;">
+        <a class="buy" href="${escapeHtml(c.ticket_url)}" target="_blank" rel="noopener">🎟️ Comprar entradas</a>
+      </div>
+    </div>
+  `;
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════════ */
+function getVisible(){
+  const withMeta=concerts
+    .filter(c=>regionMatches(c,selectedRegion))
+    .map(c=>({c, status:getStatus(c), dist:distanceKm(userLat,userLng,c.lat,c.lng)}));
+  const order={en_vivo:0,proximamente:1,finalizado:2};
+  withMeta.sort((a,b)=>{
+    if(order[a.status]!==order[b.status]) return order[a.status]-order[b.status];
+    const da=a.dist==null?Infinity:a.dist, db=b.dist==null?Infinity:b.dist;
+    return da-db;
+  });
+  return withMeta;
+}
+
+function render(){ renderMap(); renderList(); }
+
+function renderMap(){
+  markersLayer.clearLayers();
+  getVisible().forEach(({c,status,dist})=>{
+    const marker=L.marker([c.lat,c.lng],{icon:pinIcon(status)});
+    marker.bindPopup(popupHtml(c,status,dist),{maxWidth:280});
+    marker.on("popupopen",()=>{
+      // Attach star listeners inside popup
+      const popEl=document.querySelector(`#stars_${c.id}`);
+      if(popEl) attachStarListeners(popEl);
+      // Attach alarm button
+      const alarmBtn=document.querySelector(`.alarm-popup-btn[data-cid="${c.id}"]`);
+      if(alarmBtn) alarmBtn.addEventListener("click",()=>openAlarmModal(c));
+    });
+    marker.addTo(markersLayer);
+  });
+}
+
+function renderList(){
+  const container=document.getElementById("listContainer");
+  const items=getVisible();
+  if(items.length===0){
+    container.innerHTML=`<div class="empty-state">No hay conciertos cargados todavía para esta región.<br>Toca el botón <strong>+</strong> para agregar el primero.</div>`;
+    return;
+  }
+  const labels={en_vivo:"En vivo ahora 🔴",proximamente:"Próximamente 🟡",finalizado:"Finalizado ⚪"};
+  let lastGroup=null, html="";
+  items.forEach(({c,status,dist})=>{
+    if(status!==lastGroup){
+      html+=`<div class="section-title">${labels[status]}</div>`;
+      lastGroup=status;
+    }
+    const mascotClass=status==="en_vivo"?"live-anim":status==="proximamente"?"upcoming-anim":"finished-anim";
+    const phClass=status==="en_vivo"?"live-ph":status==="proximamente"?"upcoming-ph":"finished-ph";
+    const hasRing=status==="en_vivo";
+    const countdown=status==="proximamente"?countdownLabel(c.starts_at):null;
+    const rating=getRating(c.id);
+    const stars=Array.from({length:5},(_,i)=>`<span class="s" data-id="${c.id}" data-val="${i+1}">${i<rating?"⭐":"☆"}</span>`).join("");
+
+    html+=`
+      <div class="card" data-lat="${c.lat}" data-lng="${c.lng}" data-cid="${c.id}">
+        <div class="card-left">
+          ${c.poster_url
+            ?`<img class="poster" src="${escapeHtml(c.poster_url)}" alt=""
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="card-placeholder ${phClass}" style="display:none">
+                <span class="mascot-emoji ${mascotClass}">${MASCOTS[status]}</span>
+                ${hasRing?'<span class="live-ring"></span>':""}
+              </div>`
+            :`<div class="card-placeholder ${phClass}">
+                <span class="mascot-emoji ${mascotClass}">${MASCOTS[status]}</span>
+                ${hasRing?'<span class="live-ring"></span>':""}
+              </div>`}
+        </div>
+        <div class="info">
+          <p class="name">${escapeHtml(c.name)}</p>
+          <p class="venue">${escapeHtml(c.venue)}</p>
+          <div class="card-meta-row">
+            <span class="badge ${statusClass(status)}"><span class="bdot"></span>${statusLabel(status)}</span>
+            ${dist!=null?`<span class="distance">📍 ${distanceLabel(dist)}</span>`:""}
+            ${dist!=null?`<span class="travel-time">· ${travelTimeLabel(dist)}</span>`:""}
+          </div>
+          ${countdown?`<div class="card-countdown">⏳ ${countdown}</div>`:""}
+          ${c.price_note?`<div class="card-price">💰 ${escapeHtml(c.price_note)}</div>`:""}
+          <div class="card-stars" data-id="${c.id}">${stars}</div>
+          ${currentSession?`
+          <div class="card-admin-row">
+            <button class="card-edit-btn" data-cid="${c.id}">✏️ Editar</button>
+            <button class="card-del-btn" data-cid="${c.id}">🗑</button>
+          </div>`:""}
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML=html;
+
+  // Star listeners en lista
+  container.querySelectorAll(".card-stars").forEach(row=>{
+    attachStarListeners(row);
+  });
+
+  // Editar concierto
+  container.querySelectorAll(".card-edit-btn").forEach(btn=>{
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      const c=concerts.find(x=>x.id===btn.dataset.cid);
+      if(c) openModalEdit(c);
+    });
+  });
+
+  // Eliminar concierto
+  container.querySelectorAll(".card-del-btn").forEach(btn=>{
+    btn.addEventListener("click",async e=>{
+      e.stopPropagation();
+      const c=concerts.find(x=>x.id===btn.dataset.cid);
+      if(!c) return;
+      if(!confirm(`¿Eliminar "${c.name}"? Esta acción no se puede deshacer.`)) return;
+      try{
+        await deleteConcert(c.id);
+        showToast("🗑 Concierto eliminado");
+        await fetchConcerts();
+      }catch(err){ showToast("Error al eliminar. Intenta de nuevo."); }
+    });
+  });
+
+  // Click en card → abrir en mapa
+  container.querySelectorAll(".card").forEach(card=>{
+    card.addEventListener("click",(e)=>{
+      if(e.target.dataset.val) return; // star click, no navegar
+      const lat=parseFloat(card.dataset.lat), lng=parseFloat(card.dataset.lng), cid=card.dataset.cid;
+      map.setView([lat,lng],15,{animate:true});
+      const target=getVisible().find(({c})=>c.id===cid||( c.lat===lat && c.lng===lng));
+      if(target){
+        const pop=L.popup({maxWidth:280})
+          .setLatLng([lat,lng])
+          .setContent(popupHtml(target.c,target.status,target.dist));
+        pop.on("add",()=>{
+          const popEl=document.querySelector(`#stars_${target.c.id}`);
+          if(popEl) attachStarListeners(popEl);
+          const alarmBtn=document.querySelector(`.alarm-popup-btn[data-cid="${target.c.id}"]`);
+          if(alarmBtn) alarmBtn.addEventListener("click",()=>openAlarmModal(target.c));
+        });
+        pop.openOn(map);
+      }
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   GEOLOCALIZACIÓN
+═══════════════════════════════════════════════ */
+function initGeolocation(){
+  if(!("geolocation" in navigator)) return;
+  navigator.geolocation.getCurrentPosition(
+    pos=>{ userLat=pos.coords.latitude;userLng=pos.coords.longitude;map.setView([userLat,userLng],13);placeUserMarker();render(); },
+    ()=>{},
+    {enableHighAccuracy:true,timeout:8000}
+  );
+  navigator.geolocation.watchPosition(
+    pos=>{ userLat=pos.coords.latitude;userLng=pos.coords.longitude;placeUserMarker(); },
+    ()=>{},{enableHighAccuracy:true}
+  );
+}
+function placeUserMarker(){
+  if(userMarker) userMarker.remove();
+  userMarker=L.marker([userLat,userLng],{
+    icon:L.divIcon({html:`<div class="user-dot"></div>`,className:"",iconSize:[16,16],iconAnchor:[8,8]})
+  }).addTo(map);
+}
+document.getElementById("locateBtn").addEventListener("click",()=>{
+  if(userLat!=null) map.setView([userLat,userLng],14);
+  else initGeolocation();
+});
+
+/* ═══════════════════════════════════════════════
+   SELECTOR DE REGIÓN
+═══════════════════════════════════════════════ */
+function initRegionSelect(){
+  const sel=document.getElementById("regionSelect");
+  sel.innerHTML=`<option value="todas">Todas las regiones</option>`
+    +REGIONS.map(r=>`<option value="${r.key}">${r.label}</option>`).join("");
+  sel.value="todas";
+  sel.addEventListener("change",()=>{ selectedRegion=sel.value;render(); });
+
+  const fc=document.getElementById("f_city");
+  fc.innerHTML=REGIONS.map(r=>`<option value="${r.aliases[0]}">${r.label} — ${r.aliases[0]}</option>`).join("");
+}
+
+/* ═══════════════════════════════════════════════
+   SESIÓN / AUTH
+═══════════════════════════════════════════════ */
+let currentSession=null;
+const fabWrap=document.getElementById("fabWrap");
+const loginBtn=document.getElementById("loginBtn");
+const loginBackdrop=document.getElementById("loginBackdrop");
+
+async function refreshAuthUI(){
+  try{ const {data}=await supa.auth.getSession();currentSession=data.session; }
+  catch(e){ currentSession=null; }
+  fabWrap.hidden=!currentSession;
+  loginBtn.textContent=currentSession?"🔓":"🔑";
+  loginBtn.title=currentSession?"Cerrar sesión de administrador":"Iniciar sesión (solo admin)";
+}
+try{ supa.auth.onAuthStateChange(()=>refreshAuthUI()); }catch(e){}
+
+loginBtn.addEventListener("click",async()=>{
+  if(currentSession){
+    if(confirm("¿Cerrar sesión de administrador?")){
+      await supa.auth.signOut();showToast("Sesión cerrada");
+    }
+  } else {
+    loginBackdrop.hidden=false;document.body.style.overflow="hidden";
+  }
+});
+document.getElementById("loginCancelBtn").addEventListener("click",()=>{
+  loginBackdrop.hidden=true;document.body.style.overflow="";
+});
+document.getElementById("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const email=document.getElementById("l_email").value.trim();
+  const password=document.getElementById("l_password").value;
+  const btn=document.getElementById("loginSubmitBtn");
+  btn.disabled=true;btn.textContent="Entrando...";
+  try{
+    const {error}=await supa.auth.signInWithPassword({email,password});
+    if(error){ showToast("Correo o contraseña incorrectos"); btn.disabled=false;btn.textContent="Iniciar sesión"; return; }
+    document.getElementById("loginForm").reset();
+    loginBackdrop.hidden=true;document.body.style.overflow="";
+    showToast("Sesión iniciada ✅");
+  }catch(e){ showToast("No se pudo iniciar sesión. Intenta de nuevo."); }
+  finally{ btn.disabled=false;btn.textContent="Iniciar sesión"; }
+});
+
+/* ═══════════════════════════════════════════════
+   FORMULARIO AGREGAR CONCIERTO
+═══════════════════════════════════════════════ */
+const modalBackdrop=document.getElementById("modalBackdrop");
+
+function toLocalDatetime(iso){
+  if(!iso) return "";
+  const d=new Date(iso);
+  const pad=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function openModal(){
+  editingId=null;
+  document.querySelector("#modalBackdrop h2").textContent="Agregar concierto";
+  document.getElementById("saveBtn").textContent="Guardar concierto";
+  document.getElementById("concertForm").reset();
+  modalBackdrop.hidden=false;
+  document.body.style.overflow="hidden";
+}
+
+function openModalEdit(c){
+  editingId=c.id;
+  document.querySelector("#modalBackdrop h2").textContent="Editar concierto";
+  document.getElementById("saveBtn").textContent="Guardar cambios";
+  document.getElementById("f_name").value=c.name||"";
+  document.getElementById("f_venue").value=c.venue||"";
+  document.getElementById("f_city").value=c.city||"";
+  document.getElementById("f_address").value=c.address||"";
+  document.getElementById("f_lat").value=c.lat||"";
+  document.getElementById("f_lng").value=c.lng||"";
+  document.getElementById("f_starts").value=toLocalDatetime(c.starts_at);
+  document.getElementById("f_ends").value=toLocalDatetime(c.ends_at);
+  document.getElementById("f_ticket").value=c.ticket_url||"";
+  document.getElementById("f_price").value=c.price_note||"";
+  document.getElementById("f_instagram").value=c.instagram||"";
+  document.getElementById("f_parking").value=c.parking_note||"";
+  document.getElementById("f_nearby_tips").value=c.nearby_tips||"";
+  document.getElementById("f_poster").value=c.poster_url||"";
+  modalBackdrop.hidden=false;
+  document.body.style.overflow="hidden";
+}
+
+function closeModal(){ modalBackdrop.hidden=true;document.body.style.overflow="";editingId=null; }
+
+// Autocompletar recinto conocido al escribir en el campo venue
+document.getElementById("f_venue").addEventListener("input",function(){
+  const q=normalize(this.value);
+  if(q.length<3) return;
+  const match=KNOWN_VENUES.find(v=>normalize(v.n).includes(q)||q.includes(normalize(v.n).slice(0,5)));
+  if(match){
+    if(!document.getElementById("f_lat").value) document.getElementById("f_lat").value=match.lat;
+    if(!document.getElementById("f_lng").value) document.getElementById("f_lng").value=match.lng;
+    document.getElementById("f_city").value=match.city;
+    showToast("📍 Recinto reconocido: "+match.n);
+  }
+});
+
+document.getElementById("addBtn").addEventListener("click",openModal);
+document.getElementById("cancelBtn").addEventListener("click",closeModal);
+
+document.getElementById("concertForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=document.getElementById("saveBtn");
+  btn.disabled=true;btn.textContent="Guardando...";
+  const payload={
+    name:document.getElementById("f_name").value.trim(),
+    venue:document.getElementById("f_venue").value.trim(),
+    address:document.getElementById("f_address").value.trim()||null,
+    city:document.getElementById("f_city").value,
+    lat:parseFloat(document.getElementById("f_lat").value),
+    lng:parseFloat(document.getElementById("f_lng").value),
+    starts_at:document.getElementById("f_starts").value,
+    ends_at:document.getElementById("f_ends").value,
+    ticket_url:document.getElementById("f_ticket").value.trim(),
+    price_note:document.getElementById("f_price").value.trim()||null,
+    instagram:document.getElementById("f_instagram").value.trim()||null,
+    parking_note:document.getElementById("f_parking").value.trim()||null,
+    nearby_tips:document.getElementById("f_nearby_tips").value.trim()||null,
+    poster_url:document.getElementById("f_poster").value.trim()||null,
+    created_by:"formulario_web"
+  };
+  try{
+    if(editingId){
+      await updateConcert(editingId,payload);
+      showToast("✅ Concierto actualizado correctamente");
+    } else {
+      await insertConcert(payload);
+      showToast("✅ Concierto guardado correctamente");
+    }
+    document.getElementById("concertForm").reset();
+    closeModal();
+    await fetchConcerts();
+  }catch(err){
+    console.error(err);
+    showToast("No se pudo guardar. Revisa los campos obligatorios.");
+  }finally{
+    btn.disabled=false;
+    btn.textContent=editingId?"Guardar cambios":"Guardar concierto";
+  }
+});
+
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.hidden=false;
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.hidden=true,3800);
+}
+
+/* ═══════════════════════════════════════════════
+   INSTALACIÓN PWA
+═══════════════════════════════════════════════ */
+let deferredInstallPrompt = null;
+const installBanner = document.getElementById("installBanner");
+const installSheet  = document.getElementById("installSheet");
+
+function isStandalone(){
+  return window.matchMedia("(display-mode: standalone)").matches
+    || window.navigator.standalone === true;
+}
+function isIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+function installDismissed(){
+  return localStorage.getItem("installDismissed") === "1";
+}
+function dismissInstall(){
+  localStorage.setItem("installDismissed","1");
+  installBanner.hidden = true;
+}
+
+function renderInstallBannerAndroid(){
+  installSheet.innerHTML = `
+    <div class="install-header">
+      <img class="install-icon" src="icons/icon-192.png" alt="">
+      <div>
+        <p class="install-title">Instalar Radar de Conciertos</p>
+        <p class="install-sub">Accede directo desde tu pantalla de inicio — sin App Store</p>
+      </div>
+      <button class="install-close" id="installCloseBtn">×</button>
+    </div>
+    <div class="install-actions">
+      <button class="btn-install" id="installConfirmBtn">📲 Instalar ahora</button>
+      <button class="btn-install-later" id="installLaterBtn">Ahora no</button>
+    </div>
+  `;
+  installBanner.hidden = false;
+
+  document.getElementById("installConfirmBtn").addEventListener("click", async ()=>{
+    installBanner.hidden = true;
+    if(!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if(outcome === "accepted") showToast("✅ ¡App instalada! Búscala en tu pantalla de inicio.");
+  });
+  document.getElementById("installLaterBtn").addEventListener("click", dismissInstall);
+  document.getElementById("installCloseBtn").addEventListener("click", dismissInstall);
+}
+
+function renderInstallBannerIOS(){
+  installSheet.innerHTML = `
+    <div class="install-header">
+      <img class="install-icon" src="icons/icon-192.png" alt="">
+      <div>
+        <p class="install-title">Instalar Radar de Conciertos</p>
+        <p class="install-sub">Agrégala a tu pantalla de inicio en 3 pasos</p>
+      </div>
+      <button class="install-close" id="installCloseBtn">×</button>
+    </div>
+    <ul class="ios-steps">
+      <li>
+        <span class="step-num">1</span>
+        Toca el botón Compartir <span class="ios-share-icon">⬆️</span> en la barra de Safari
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        Desplázate y toca <strong>"Agregar a pantalla de inicio"</strong>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        Toca <strong>"Agregar"</strong> — ¡listo!
+      </li>
+    </ul>
+    <div class="install-actions">
+      <button class="btn-install-later" id="installLaterBtn" style="flex:1">Entendido</button>
+    </div>
+  `;
+  installBanner.hidden = false;
+
+  document.getElementById("installLaterBtn").addEventListener("click", dismissInstall);
+  document.getElementById("installCloseBtn").addEventListener("click", dismissInstall);
+}
+
+// Android / Chrome / Edge: capturar evento nativo
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if(!isStandalone() && !installDismissed()){
+    setTimeout(renderInstallBannerAndroid, 3000);
+  }
+});
+
+// iOS Safari: mostrar instrucciones manuales
+if(isIOS() && !isStandalone() && !installDismissed()){
+  setTimeout(renderInstallBannerIOS, 3000);
+}
+
+// Confirmar instalación exitosa (app abierta en standalone)
+window.addEventListener("appinstalled", ()=>{
+  deferredInstallPrompt = null;
+  installBanner.hidden = true;
+  showToast("✅ ¡App instalada correctamente!");
+});
+
+/* ═══════════════════════════════════════════════
+   SERVICE WORKER
+═══════════════════════════════════════════════ */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   ERROR HANDLING
+═══════════════════════════════════════════════ */
+window.addEventListener("error",e=>{
+  console.error("App error:",e.error||e.message);
+});
+window.addEventListener("unhandledrejection",e=>{
+  console.error("App promise error:",e.reason);
+});
+
+/* ═══════════════════════════════════════════════
+   INICIO
+═══════════════════════════════════════════════ */
+function init(){
+  initTheme();
+  initMap();
+  initRegionSelect();
+  initGeolocation();
+  refreshAuthUI();
+  fetchConcerts();
+  setInterval(fetchConcerts,60000);  // refresh datos cada 60s
+  setInterval(render,30000);          // recalcular estados cada 30s
+}
+init();
+</script>
+</body>
+</html>
