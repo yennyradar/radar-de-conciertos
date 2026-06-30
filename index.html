@@ -2014,12 +2014,48 @@ function isStandalone(){
 function isIOS(){
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
+function isInAppBrowser(){
+  const ua = navigator.userAgent;
+  return /Instagram|FBAN|FBAV|Twitter|WhatsApp|Line\/|TikTok|Snapchat/i.test(ua)
+    || (ua.includes("Android") && ua.includes(" wv)"));
+}
 function installDismissed(){
   return localStorage.getItem("installDismissed") === "1";
 }
 function dismissInstall(){
   localStorage.setItem("installDismissed","1");
   installBanner.hidden = true;
+}
+
+function renderInstallBannerInApp(){
+  const ios = isIOS();
+  installSheet.innerHTML = `
+    <div class="install-header">
+      <img class="install-icon" src="icons/icon-192.png" alt="">
+      <div>
+        <p class="install-title">Un paso para instalarla 📲</p>
+        <p class="install-sub">Abre en ${ios?"Safari":"Chrome"} para poder instalarla</p>
+      </div>
+      <button class="install-close" id="installCloseBtn">×</button>
+    </div>
+    <ul class="ios-steps">
+      ${ios ? `
+      <li><span class="step-num">1</span>Toca los <strong>3 puntos ···</strong> o el ícono de Safari abajo a la derecha</li>
+      <li><span class="step-num">2</span>Elige <strong>"Abrir en Safari"</strong></li>
+      <li><span class="step-num">3</span>En Safari: toca <span class="ios-share-icon">⬆️</span> → <strong>"Añadir a inicio"</strong></li>
+      ` : `
+      <li><span class="step-num">1</span>Toca los <strong>3 puntos ⋮</strong> en la esquina superior derecha</li>
+      <li><span class="step-num">2</span>Elige <strong>"Abrir en Chrome"</strong></li>
+      <li><span class="step-num">3</span>En Chrome aparece el botón de instalación automáticamente 🎉</li>
+      `}
+    </ul>
+    <div class="install-actions">
+      <button class="btn-install" id="installLaterBtn" style="flex:1">Entendido, voy a abrirlo</button>
+    </div>
+  `;
+  installBanner.hidden = false;
+  document.getElementById("installLaterBtn").addEventListener("click", dismissInstall);
+  document.getElementById("installCloseBtn").addEventListener("click", dismissInstall);
 }
 
 function renderInstallBannerAndroid(){
@@ -2088,18 +2124,24 @@ function renderInstallBannerIOS(){
   document.getElementById("installCloseBtn").addEventListener("click", dismissInstall);
 }
 
-// Android / Chrome / Edge: capturar evento nativo
-window.addEventListener("beforeinstallprompt", e => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  if(!isStandalone() && !installDismissed()){
-    setTimeout(renderInstallBannerAndroid, 1500);
-  }
-});
+// Caso prioritario: navegador in-app (WhatsApp, Instagram, TikTok…)
+// Estos no soportan instalación — mostrar instrucciones para abrir en Chrome/Safari
+if(!isStandalone() && !installDismissed() && isInAppBrowser()){
+  setTimeout(renderInstallBannerInApp, 1000);
+} else {
+  // Android / Chrome / Edge: capturar evento nativo de instalación
+  window.addEventListener("beforeinstallprompt", e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if(!isStandalone() && !installDismissed()){
+      setTimeout(renderInstallBannerAndroid, 1500);
+    }
+  });
 
-// iOS Safari: mostrar instrucciones manuales
-if(isIOS() && !isStandalone() && !installDismissed()){
-  setTimeout(renderInstallBannerIOS, 1500);
+  // iOS Safari: mostrar instrucciones manuales
+  if(isIOS() && !isStandalone() && !installDismissed()){
+    setTimeout(renderInstallBannerIOS, 1500);
+  }
 }
 
 // Confirmar instalación exitosa (app abierta en standalone)
