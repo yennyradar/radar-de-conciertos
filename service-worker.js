@@ -1,4 +1,4 @@
-const CACHE_NAME = "radar-conciertos-v7";
+const CACHE_NAME = "radar-conciertos-v8";
 const APP_SHELL = [
   "/",
   "/index.html",

@@ -1,13 +1,15 @@
 {
   "name": "Radar de Conciertos",
   "short_name": "Radar",
-  "description": "Encuentra conciertos en vivo cerca de ti en Santiago, Valparaíso y Concepción",
-  "start_url": "/",
-  "scope": "/",
+  "description": "Descubre conciertos en vivo en Chile — Radar te acompaña 🎧",
+  "start_url": "/radar-de-conciertos/",
+  "scope": "/radar-de-conciertos/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#dc2626",
+  "background_color": "#08081a",
+  "theme_color": "#a855f7",
   "orientation": "portrait",
+  "lang": "es-CL",
+  "categories": ["entertainment", "music"],
   "icons": [
     {
       "src": "icons/icon-192.png",
