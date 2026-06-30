@@ -131,6 +131,35 @@ function addHours(iso:string, h:number):string {
   return new Date(new Date(iso).getTime()+h*3600000).toISOString();
 }
 
+/* ═══ FILTRO MÚSICA ═══ */
+const NON_MUSIC=[
+  /\bvs\.?\s+/i,               // partidos deportivos: "equipo vs equipo"
+  /copa chile/i,
+  /\bcampeonato nacional\b/i,
+  /monster truck/i,
+  /hot wheels/i,
+  /disney on ice/i,
+  /\bcomic.?con\b/i,
+  /^copy of /i,                 // duplicados de Eventbrite
+  /^\s*taller:/i,               // talleres y workshops
+  /\bmba tour\b/i,
+  /dinner meet/i,
+  /dinner with new/i,
+  /\bfoodies\b/i,
+  /expo colo.?colo/i,
+  /\bcoolslide\b/i,
+  /invierno m[aá]gico/i,
+  /proyecto de t[ií]tulo danza/i,
+  /\bcirco pastelito\b/i,
+  /\bcirque du soleil\b/i,
+  /\bbarra libre\b/i,           // fiestas con trago libre — no son conciertos
+  /\bescuela de teatro\b/i,     // producciones de escuelas de teatro
+  /cities project.*dinner/i,    // meetups de networking
+];
+function isMusicEvent(name:string):boolean{
+  return !NON_MUSIC.some(re=>re.test(name));
+}
+
 const HOME_URLS=[
   /^https?:\/\/www\.puntoticket\.com\/?$/,
   /^https?:\/\/www\.puntoticket\.com\/categoria/,
@@ -537,6 +566,7 @@ function dedup(concerts:Concert[]):Concert[]{
   const seen=new Set<string>();
   return concerts.filter(c=>{
     if(new Date(c.starts_at)<=now) return false;
+    if(!isMusicEvent(c.name)) return false;
     const key=`${norm(c.name)}||${c.starts_at.slice(0,10)}`;
     if(seen.has(key)) return false;
     seen.add(key);
