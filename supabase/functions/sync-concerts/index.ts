@@ -467,6 +467,70 @@ async function scrapePortalTicket():Promise<Concert[]> {
   return concerts;
 }
 
+/* ═══════════════════════════════
+   SCRAPER 4: TICKETMASTER CHILE
+════════════════════════════════ */
+async function scrapeTicketmasterCL():Promise<Concert[]>{
+  const concerts:Concert[]=[];
+  const urls=[
+    "https://www.ticketmaster.cl/musica",
+    "https://www.ticketmaster.cl/conciertos",
+    "https://www.ticketmaster.cl",
+  ];
+  for(const url of urls){
+    const html=await fetchPage(url);
+    if(!html) continue;
+    console.log(`Ticketmaster CL ${url}: ${html.length} chars`);
+    const jsonLDs=extractJsonLD(html);
+    for(const ld of jsonLDs){
+      const events:any[]=
+        ld["@type"]==="Event"?[ld]:
+        ld["@type"]==="ItemList"?(ld.itemListElement||[]).map((e:any)=>e.item||e):
+        Array.isArray(ld)?ld.filter((e:any)=>e["@type"]==="Event"):[];
+      for(const ev of events){
+        if(!ev.name||!ev.startDate) continue;
+        const venueName=ev.location?.name||"Por confirmar";
+        const cityRaw=ev.location?.address?.addressLocality||"";
+        const city=cityFromVenue(venueName)||cityFromText(cityRaw)||"santiago";
+        const [lat,lng]=venueCoords(venueName);
+        const startsAt=ev.startDate.length===10?`${ev.startDate}T20:00:00`:ev.startDate;
+        const img=Array.isArray(ev.image)?ev.image[0]:ev.image||null;
+        concerts.push({
+          name:ev.name, venue:venueName, city,
+          address:ev.location?.address?.streetAddress||null,
+          lat, lng, starts_at:startsAt, ends_at:ev.endDate||addHours(startsAt,3),
+          ticket_url:validEventUrl(ev.url||""), price_note:null,
+          poster_url:typeof img==="string"?img:img?.url||null,
+          created_by:"ticketmaster_auto",
+        });
+      }
+    }
+    const doc=parse(html);
+    const cards=Array.from(doc.querySelectorAll("a")).filter((a:any)=>a.querySelector("h2,h3,h4")&&a.querySelector("img"));
+    for(const card of cards.slice(0,60)){
+      const name=(card.querySelector("h2,h3,h4")?.text||"").trim();
+      if(!name||name.length<3) continue;
+      const href=card.getAttribute("href")||"";
+      const ticketUrl=href.startsWith("http")?href:href?`https://www.ticketmaster.cl${href}`:"";
+      const dateText=(card.querySelector("time,.date,.fecha")?.text||"").trim();
+      const locationText=(card.querySelector(".venue,.lugar,.location")?.text||"").trim();
+      const img=card.querySelector("img")?.getAttribute("src")||null;
+      const city=cityFromText(locationText)||"santiago";
+      const [lat,lng]=venueCoords(locationText);
+      const startsAt=parseDate(dateText)||addHours(new Date().toISOString(),720);
+      concerts.push({
+        name, venue:locationText||"Por confirmar", city,
+        address:null, lat, lng,
+        starts_at:startsAt, ends_at:addHours(startsAt,3),
+        ticket_url:validEventUrl(ticketUrl), price_note:null,
+        poster_url:img?.startsWith("http")?img:null,
+        created_by:"ticketmaster_auto",
+      });
+    }
+  }
+  return concerts;
+}
+
 /* ═══ DEDUPLICAR ═══ */
 function dedup(concerts:Concert[]):Concert[]{
   const now=new Date();
@@ -491,24 +555,25 @@ Deno.serve(async(req:Request)=>{
 
   try{
     // Limpiar eventos auto anteriores
-    const AUTO=["eventbrite_auto","passline_auto","portalticket_auto","puntoticket_auto","predicthq_auto","ticketmaster_auto","bandsintown_auto","community"];
+    const AUTO=["eventbrite_auto","passline_auto","portalticket_auto","puntoticket_auto","predicthq_auto","ticketmaster_auto","bandsintown_auto","community","ticketmaster_cl_auto"];
     for(const src of AUTO){
       await supa.from("concerts").delete().eq("created_by",src);
     }
     log.push("✓ Limpieza de eventos anteriores");
 
     // Correr los 4 scrapers en paralelo
-    log.push("Scraping PuntoTicket, Eventbrite, Passline y PortalTicket...");
-    const [ptt,eb,pl,pt]=await Promise.all([
+    log.push("Scraping 5 fuentes...");
+    const [ptt,eb,pl,pt,tm]=await Promise.all([
       scrapePuntoTicket().catch(e=>{log.push(`PuntoTicket error: ${e}`);return[];}),
       scrapeEventbrite().catch(e=>{log.push(`Eventbrite error: ${e}`);return[];}),
       scrapePassline().catch(e=>{log.push(`Passline error: ${e}`);return[];}),
       scrapePortalTicket().catch(e=>{log.push(`PortalTicket error: ${e}`);return[];}),
+      scrapeTicketmasterCL().catch(e=>{log.push(`Ticketmaster CL error: ${e}`);return[];}),
     ]);
 
-    log.push(`PuntoTicket: ${ptt.length} | Eventbrite: ${eb.length} | Passline: ${pl.length} | PortalTicket: ${pt.length}`);
+    log.push(`PuntoTicket: ${ptt.length} | Eventbrite: ${eb.length} | Passline: ${pl.length} | PortalTicket: ${pt.length} | Ticketmaster CL: ${tm.length}`);
 
-    const all=dedup([...ptt,...eb,...pl,...pt]);
+    const all=dedup([...ptt,...eb,...pl,...pt,...tm]);
     log.push(`Total sin duplicados y futuros: ${all.length}`);
 
     if(all.length===0){
