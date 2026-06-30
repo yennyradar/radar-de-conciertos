@@ -1434,7 +1434,12 @@ try{ supa.auth.onAuthStateChange(()=>refreshAuthUI()); }catch(e){}
 loginBtn.addEventListener("click",async()=>{
   if(currentSession){
     if(confirm("¿Cerrar sesión de administrador?")){
-      await supa.auth.signOut();showToast("Sesión cerrada");
+      currentSession=null;
+      fabWrap.hidden=true;
+      loginBtn.textContent="🔑";
+      loginBtn.title="Iniciar sesión (solo admin)";
+      showToast("Sesión cerrada");
+      render();
     }
   } else {
     loginBackdrop.hidden=false;document.body.style.overflow="hidden";
@@ -1450,13 +1455,32 @@ document.getElementById("loginForm").addEventListener("submit",async e=>{
   const btn=document.getElementById("loginSubmitBtn");
   btn.disabled=true;btn.textContent="Entrando...";
   try{
-    const {error}=await supa.auth.signInWithPassword({email,password});
-    if(error){ showToast("Correo o contraseña incorrectos"); btn.disabled=false;btn.textContent="Iniciar sesión"; return; }
+    // Usar REST API directamente para evitar cuelgues del cliente JS
+    const res=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{
+      method:"POST",
+      headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
+      body:JSON.stringify({email,password})
+    });
+    const data=await res.json();
+    if(!res.ok||data.error){
+      showToast("Correo o contraseña incorrectos");
+      btn.disabled=false;btn.textContent="Iniciar sesión";
+      return;
+    }
+    // Sesión manual para que currentSession funcione
+    currentSession={user:{email},access_token:data.access_token};
     document.getElementById("loginForm").reset();
     loginBackdrop.hidden=true;document.body.style.overflow="";
-    showToast("Sesión iniciada ✅");
-  }catch(e){ showToast("No se pudo iniciar sesión. Intenta de nuevo."); }
-  finally{ btn.disabled=false;btn.textContent="Iniciar sesión"; }
+    fabWrap.hidden=false;
+    loginBtn.textContent="🔓";
+    loginBtn.title="Cerrar sesión";
+    showToast("Sesión iniciada ✅ Bienvenida, "+email.split("@")[0]+"!");
+    render();
+  }catch(err){
+    showToast("Error de conexión. Intenta de nuevo.");
+  }finally{
+    btn.disabled=false;btn.textContent="Iniciar sesión";
+  }
 });
 
 /* ═══════════════════════════════════════════════
