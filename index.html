@@ -442,6 +442,73 @@ main{flex:1;padding:12px 12px 100px;}
   flex-shrink:0;
 }
 @keyframes vinyl-spin{from{transform:rotate(0);}to{transform:rotate(360deg);}}
+
+/* ═══════════════════════════════════════════════
+   SISTEMA MASCOTA RADAR
+═══════════════════════════════════════════════ */
+.radar-greeting{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;
+  background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(236,72,153,.05));
+  border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.radar-cat-wrap{
+  position:relative;flex-shrink:0;width:60px;height:60px;
+  display:flex;align-items:center;justify-content:center;
+}
+.radar-cat{font-size:40px;display:block;transition:all .3s;}
+.radar-accessory{
+  position:absolute;bottom:-2px;right:-4px;
+  font-size:20px;
+  filter:drop-shadow(0 0 4px rgba(168,85,247,.6));
+}
+
+/* Estados animados */
+.state-greeting .radar-cat{animation:radar-float 3s ease-in-out infinite;}
+.state-live .radar-cat{animation:radar-dance .5s ease-in-out infinite alternate;}
+.state-dance .radar-cat{animation:radar-dance .7s ease-in-out infinite alternate;}
+.state-celebrating .radar-cat{animation:radar-jump .4s ease-in-out infinite;}
+.state-sleeping .radar-cat{animation:radar-sleep 2.5s ease-in-out infinite;}
+.state-headbang .radar-cat{animation:radar-headbang .3s ease-in-out infinite;}
+
+@keyframes radar-float{0%,100%{transform:translateY(0) rotate(0);}50%{transform:translateY(-7px) rotate(3deg);}}
+@keyframes radar-dance{from{transform:rotate(-10deg) scale(1);}to{transform:rotate(10deg) scale(1.08);}}
+@keyframes radar-jump{0%,100%{transform:translateY(0);}40%{transform:translateY(-14px) scale(1.1);}70%{transform:translateY(-4px);}}
+@keyframes radar-sleep{0%,100%{transform:scale(1) rotate(0);}50%{transform:scale(.96) rotate(-5deg);}}
+@keyframes radar-headbang{from{transform:rotate(-18deg) translateY(0);}to{transform:rotate(8deg) translateY(-6px);}}
+
+/* Live mode: glow pulsante alrededor del gato */
+.state-live .radar-cat-wrap::before{
+  content:'';position:absolute;inset:-6px;border-radius:50%;
+  background:radial-gradient(circle,rgba(244,63,94,.4),transparent 70%);
+  animation:live-glow 1s ease-in-out infinite;
+}
+@keyframes live-glow{0%,100%{transform:scale(1);opacity:.8;}50%{transform:scale(1.2);opacity:.3;}}
+
+/* Burbuja de mensaje */
+.radar-bubble{
+  flex:1;
+}
+.radar-bubble .radar-name{
+  font-size:13px;font-weight:800;
+  background:linear-gradient(90deg,#a855f7,#ec4899);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:2px;
+}
+body.day-mode .radar-bubble .radar-name{
+  background:linear-gradient(90deg,#7c3aed,#db2777);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.radar-msg{
+  font-size:12px;color:var(--text-dim);line-height:1.4;
+  transition:opacity .3s;
+}
+.radar-genre-badge{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;
+  background:var(--accent-dim);color:var(--accent);
+  display:inline-block;margin-top:4px;
+}
 .vinyl::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);}
 
 /* ═══════════════════════════════════════════════
@@ -613,32 +680,16 @@ footer.fab-wrap .inner{width:100%;max-width:var(--maxw);display:flex;justify-con
   <!-- MAPA -->
   <div id="map"></div>
 
-  <!-- SALUDO RADAR -->
-  <div class="radar-greeting" id="radarGreeting">
-    <svg class="radar-cat" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="40" cy="52" rx="22" ry="26" fill="#0f0f1a"/>
-      <ellipse cx="40" cy="32" rx="22" ry="21" fill="#0f0f1a"/>
-      <polygon points="22,18 14,3 30,14" fill="#0f0f1a"/>
-      <polygon points="58,18 66,3 50,14" fill="#0f0f1a"/>
-      <polygon points="23,16 17,6 29,14" fill="#ec4899" opacity=".7"/>
-      <polygon points="57,16 63,6 51,14" fill="#a855f7" opacity=".7"/>
-      <ellipse cx="31" cy="30" rx="6" ry="5" fill="#a855f7"/>
-      <ellipse cx="49" cy="30" rx="6" ry="5" fill="#a855f7"/>
-      <ellipse cx="31" cy="31" rx="2" ry="4" fill="#0a0015"/>
-      <ellipse cx="49" cy="31" rx="2" ry="4" fill="#0a0015"/>
-      <circle cx="33" cy="28" r="1.5" fill="white" opacity=".8"/>
-      <circle cx="51" cy="28" r="1.5" fill="white" opacity=".8"/>
-      <polygon points="40,39 37,43 43,43" fill="#ec4899"/>
-      <path d="M35,45 Q40,49 45,45" stroke="#ec4899" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-      <line x1="18" y1="37" x2="31" y2="35" stroke="#a855f7" stroke-width=".8" opacity=".8"/>
-      <line x1="62" y1="37" x2="49" y2="35" stroke="#ec4899" stroke-width=".8" opacity=".8"/>
-      <path d="M18,26 Q18,10 40,10 Q62,10 62,26" stroke="#06b6d4" stroke-width="3" fill="none" stroke-linecap="round"/>
-      <rect x="9" y="24" width="11" height="16" rx="5" fill="#1a0a2e" stroke="#06b6d4" stroke-width="1.5"/>
-      <rect x="60" y="24" width="11" height="16" rx="5" fill="#1a0a2e" stroke="#06b6d4" stroke-width="1.5"/>
-    </svg>
-    <div class="radar-greeting-text">
-      <h2>¡Hola! Soy Radar 🎧</h2>
-      <p>¿Qué concierto buscamos hoy?</p>
+  <!-- SALUDO RADAR (dinámico) -->
+  <div class="radar-greeting state-greeting" id="radarGreeting">
+    <div class="radar-cat-wrap" id="radarCatWrap">
+      <span class="radar-cat" id="radarCatEmoji">🐱</span>
+      <span class="radar-accessory" id="radarAccessory">🎧</span>
+    </div>
+    <div class="radar-bubble">
+      <div class="radar-name">Radar 🎵</div>
+      <div class="radar-msg" id="radarMsg">¡Hola! ¿Listo para descubrir tu próximo concierto?</div>
+      <span class="radar-genre-badge" id="radarGenreBadge" style="display:none"></span>
     </div>
     <div class="vinyl"></div>
   </div>
@@ -1236,7 +1287,104 @@ function getVisible(){
   return withMeta;
 }
 
-function render(){ renderMap(); renderList(); }
+/* ═══════════════════════════════════════════════
+   SISTEMA MASCOTA RADAR
+═══════════════════════════════════════════════ */
+const RADAR_OUTFITS = {
+  rock:       {emoji:"🐱", accessory:"🎸", anim:"state-dance",     badge:"🎸 Rock"},
+  metal:      {emoji:"🐱", accessory:"🤘", anim:"state-headbang",  badge:"🤘 Metal"},
+  electronica:{emoji:"🐱", accessory:"🎧", anim:"state-live",      badge:"🎧 Electrónica"},
+  jazz:       {emoji:"🐱", accessory:"🎷", anim:"state-greeting",  badge:"🎷 Jazz"},
+  pop:        {emoji:"🐱", accessory:"🎤", anim:"state-dance",     badge:"🎤 Pop"},
+  kpop:       {emoji:"🐱", accessory:"💫", anim:"state-dance",     badge:"💫 K-Pop"},
+  salsa:      {emoji:"🐱", accessory:"💃", anim:"state-dance",     badge:"💃 Salsa"},
+  cumbia:     {emoji:"🐱", accessory:"🪗", anim:"state-dance",     badge:"🪗 Cumbia"},
+  clasica:    {emoji:"🐱", accessory:"🎻", anim:"state-greeting",  badge:"🎻 Clásica"},
+  hip:        {emoji:"🐱", accessory:"🎤", anim:"state-dance",     badge:"🎤 Urbano"},
+  festival:   {emoji:"🐱", accessory:"🎉", anim:"state-celebrating",badge:"🎉 Festival"},
+  default:    {emoji:"🐱", accessory:"🎧", anim:"state-greeting",  badge:""},
+};
+
+const RADAR_MSGS = {
+  live:       ["¡Hay un concierto EN VIVO ahora! 🔥","¡El show está comenzando! 🎶","¡Baila conmigo! 🕺"],
+  upcoming:   ["¡Ya falta poco para el concierto! ⏳","No olvides revisar cómo llegar al recinto 📍","¡Consigue tu entrada antes que se agote! 🎟"],
+  empty:      ["No hay conciertos por aquí... 😴","Estoy durmiendo mientras esperamos eventos 💤","Vuelve pronto, seguro hay algo nuevo 🎵"],
+  greeting:   ["¡Hola! ¿Listo para descubrir tu próximo concierto?","¡Bienvenido/a! Hay buenos conciertos esperándote 🎶","¿Qué concierto buscamos hoy? 🔍"],
+  celebrating:["¡Qué buena elección! 🎉","¡A disfrutar el show! 🎸","¡Espero que la pases increíble! 🌟"],
+};
+
+let radarMsgIdx = 0;
+let radarMsgTimer = null;
+
+function updateRadar(){
+  const greeting = document.getElementById("radarGreeting");
+  const catEl = document.getElementById("radarCatEmoji");
+  const accEl = document.getElementById("radarAccessory");
+  const msgEl = document.getElementById("radarMsg");
+  const badgeEl = document.getElementById("radarGenreBadge");
+  if(!greeting||!catEl) return;
+
+  const items = getVisible();
+  const live = items.find(x=>x.status==="en_vivo");
+  const next = items.find(x=>x.status==="proximamente");
+  const empty = items.length===0;
+
+  // Determinar género del concierto más relevante
+  let genreKey = "default";
+  const ref = live?.c || next?.c;
+  if(ref){
+    const g = extractGenre(ref.venue);
+    if(g){
+      const label = normalize(g.label);
+      if(label.includes("rock"))        genreKey="rock";
+      else if(label.includes("metal"))  genreKey="metal";
+      else if(label.includes("electr")) genreKey="electronica";
+      else if(label.includes("jazz"))   genreKey="jazz";
+      else if(label.includes("pop"))    genreKey="pop";
+      else if(label.includes("hip")||label.includes("urban")) genreKey="hip";
+      else if(label.includes("salsa"))  genreKey="salsa";
+      else if(label.includes("cumbia")) genreKey="cumbia";
+      else if(label.includes("clásic")) genreKey="clasica";
+      else if(label.includes("festival")) genreKey="festival";
+    }
+  }
+
+  const outfit = RADAR_OUTFITS[genreKey] || RADAR_OUTFITS.default;
+
+  // Determinar estado
+  let state, msgs;
+  if(empty){        state="state-sleeping";  msgs=RADAR_MSGS.empty; }
+  else if(live){    state="state-live";       msgs=RADAR_MSGS.live; }
+  else if(next){    state=outfit.anim;        msgs=RADAR_MSGS.upcoming; }
+  else{             state="state-greeting";   msgs=RADAR_MSGS.greeting; }
+
+  // Aplicar
+  greeting.className = "radar-greeting " + state;
+  catEl.textContent = outfit.emoji;
+  accEl.textContent = outfit.accessory;
+
+  // Mostrar/ocultar badge de género
+  if(outfit.badge && ref){
+    badgeEl.textContent = outfit.badge;
+    badgeEl.style.display = "inline-block";
+  } else {
+    badgeEl.style.display = "none";
+  }
+
+  // Rotar mensajes cada 5s
+  if(radarMsgTimer) clearInterval(radarMsgTimer);
+  msgEl.textContent = msgs[radarMsgIdx % msgs.length];
+  radarMsgTimer = setInterval(()=>{
+    radarMsgIdx++;
+    msgEl.style.opacity="0";
+    setTimeout(()=>{
+      msgEl.textContent = msgs[radarMsgIdx % msgs.length];
+      msgEl.style.opacity="1";
+    },300);
+  },5000);
+}
+
+function render(){ renderMap(); renderList(); updateRadar(); }
 
 function renderMap(){
   markersLayer.clearLayers();
