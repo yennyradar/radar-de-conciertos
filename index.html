@@ -805,12 +805,13 @@ const KNOWN_VENUES = [
   {n:"Estadio Santa Laura",lat:-33.4380,lng:-70.6560,city:"santiago"},
   {n:"Teatro Municipal de Santiago",lat:-33.4420,lng:-70.6520,city:"santiago"},
   // Valparaíso
-  {n:"Teatro Trotamundos",lat:-33.0490,lng:-71.6180,city:"valparaiso"},
-  {n:"Club Segundo Piso",lat:-33.0460,lng:-71.6140,city:"valparaiso"},
-  {n:"Teatro Mauri",lat:-33.0455,lng:-71.6195,city:"valparaiso"},
-  {n:"Sala Rivoli",lat:-33.0465,lng:-71.6160,city:"valparaiso"},
-  {n:"VTP - Valparaíso Teatro del Puerto",lat:-33.0380,lng:-71.6280,city:"valparaiso"},
-  {n:"Teatro Municipal de Valparaíso",lat:-33.0472,lng:-71.6127,city:"valparaiso"},
+  {n:"Teatro Trotamundos",lat:-33.0490,lng:-71.6180,city:"valparaiso",ticket:"https://www.passline.com/eventos"},
+  {n:"Club Segundo Piso",lat:-33.0460,lng:-71.6140,city:"valparaiso",ticket:"https://www.portalticket.cl"},
+  {n:"Teatro Mauri",lat:-33.0455,lng:-71.6195,city:"valparaiso",ticket:"https://www.portalticket.cl"},
+  {n:"Mauri SCD",lat:-33.0455,lng:-71.6195,city:"valparaiso",ticket:"https://www.portalticket.cl"},
+  {n:"Sala Rivoli",lat:-33.0465,lng:-71.6160,city:"valparaiso",ticket:"https://www.passline.com/eventos"},
+  {n:"VTP - Valparaíso Teatro del Puerto",lat:-33.0380,lng:-71.6280,city:"valparaiso",ticket:"https://www.passline.com/eventos"},
+  {n:"Teatro Municipal de Valparaíso",lat:-33.0472,lng:-71.6127,city:"valparaiso",ticket:"https://www.portalticket.cl"},
   // Viña del Mar
   {n:"Anfiteatro de Viña del Mar",lat:-33.0153,lng:-71.5500,city:"vina del mar"},
   {n:"Estadio Sausalito",lat:-33.0310,lng:-71.5500,city:"vina del mar"},
@@ -1537,7 +1538,10 @@ document.getElementById("f_venue").addEventListener("input",function(){
     if(!document.getElementById("f_lat").value) document.getElementById("f_lat").value=match.lat;
     if(!document.getElementById("f_lng").value) document.getElementById("f_lng").value=match.lng;
     document.getElementById("f_city").value=match.city;
-    showToast("📍 Recinto reconocido: "+match.n);
+    if(match.ticket && !document.getElementById("f_ticket").value)
+      document.getElementById("f_ticket").value=match.ticket;
+    const plat=match.ticket?.includes("passline")?"Passline":match.ticket?.includes("portalticket")?"PortalTicket":"";
+    showToast("📍 "+match.n+(plat?" · "+plat:"")+" — coordenadas listas");
   }
 });
 
