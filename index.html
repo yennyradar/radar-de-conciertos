@@ -4,10 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Radar de Conciertos</title>
-<meta name="description" content="Conciertos en vivo cerca de ti — todas las regiones de Chile" />
-<meta name="theme-color" content="#dc2626" />
+<meta name="description" content="Todos los conciertos en vivo de Chile en un mapa. Entradas con un clic. Instálala gratis, sin App Store." />
+<meta name="theme-color" content="#a855f7" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Radar Conciertos" />
+<!-- Open Graph — WhatsApp · Instagram · Facebook · iMessage -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://radarconcierto.github.io" />
+<meta property="og:site_name" content="Radar de Conciertos" />
+<meta property="og:title" content="Radar de Conciertos 🎵 La app de Chile" />
+<meta property="og:description" content="50+ conciertos en vivo, mapa interactivo, entradas con un clic y alarmas. Instálala gratis directo desde tu celular — sin App Store ni Play Store." />
+<meta property="og:image" content="https://radarconcierto.github.io/icons/icon-512.png" />
+<meta property="og:image:width" content="512" />
+<meta property="og:image:height" content="512" />
+<meta property="og:locale" content="es_CL" />
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Radar de Conciertos 🎵 La app de Chile" />
+<meta name="twitter:description" content="50+ conciertos en vivo, mapa interactivo y alarmas. Sin App Store." />
+<meta name="twitter:image" content="https://radarconcierto.github.io/icons/icon-512.png" />
 <link rel="manifest" href="manifest.json" />
 <link rel="icon" href="icons/icon-192.png" />
 <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -2011,14 +2027,17 @@ function renderInstallBannerAndroid(){
     <div class="install-header">
       <img class="install-icon" src="icons/icon-192.png" alt="">
       <div>
-        <p class="install-title">Instalar Radar de Conciertos</p>
-        <p class="install-sub">Accede directo desde tu pantalla de inicio — sin App Store</p>
+        <p class="install-title">¡Instala Radar de Conciertos!</p>
+        <p class="install-sub">🗺 Mapa · 🎟 Entradas · 🔔 Alarmas · Sin App Store</p>
       </div>
       <button class="install-close" id="installCloseBtn">×</button>
     </div>
+    <div style="font-size:12px;color:var(--text-dim);margin:0 0 12px;padding:10px 12px;background:var(--accent-dim);border-radius:10px;border:1px solid rgba(168,85,247,.25);">
+      ✨ Más de 50 conciertos de Chile actualizándose solos cada día. Gratis, rápida y funciona sin internet.
+    </div>
     <div class="install-actions">
-      <button class="btn-install" id="installConfirmBtn">📲 Instalar ahora</button>
-      <button class="btn-install-later" id="installLaterBtn">Ahora no</button>
+      <button class="btn-install" id="installConfirmBtn">📲 Instalar gratis ahora</button>
+      <button class="btn-install-later" id="installLaterBtn">Después</button>
     </div>
   `;
   installBanner.hidden = false;
@@ -2040,27 +2059,27 @@ function renderInstallBannerIOS(){
     <div class="install-header">
       <img class="install-icon" src="icons/icon-192.png" alt="">
       <div>
-        <p class="install-title">Instalar Radar de Conciertos</p>
-        <p class="install-sub">Agrégala a tu pantalla de inicio en 3 pasos</p>
+        <p class="install-title">¡Instala Radar de Conciertos!</p>
+        <p class="install-sub">50+ conciertos en tu pantalla — gratis y sin App Store</p>
       </div>
       <button class="install-close" id="installCloseBtn">×</button>
     </div>
     <ul class="ios-steps">
       <li>
         <span class="step-num">1</span>
-        Toca el botón Compartir <span class="ios-share-icon">⬆️</span> en la barra de Safari
+        Toca <span class="ios-share-icon">⬆️</span> <strong>Compartir</strong> en la barra inferior de Safari
       </li>
       <li>
         <span class="step-num">2</span>
-        Desplázate y toca <strong>"Agregar a pantalla de inicio"</strong>
+        Busca y toca <strong>"Añadir a inicio"</strong>
       </li>
       <li>
         <span class="step-num">3</span>
-        Toca <strong>"Agregar"</strong> — ¡listo!
+        Toca <strong>"Añadir"</strong> — ¡ya está en tu celu! 🎉
       </li>
     </ul>
     <div class="install-actions">
-      <button class="btn-install-later" id="installLaterBtn" style="flex:1">Entendido</button>
+      <button class="btn-install" id="installLaterBtn" style="flex:1;background:var(--accent)">¡Entendido, voy a instalarlo!</button>
     </div>
   `;
   installBanner.hidden = false;
@@ -2074,13 +2093,13 @@ window.addEventListener("beforeinstallprompt", e => {
   e.preventDefault();
   deferredInstallPrompt = e;
   if(!isStandalone() && !installDismissed()){
-    setTimeout(renderInstallBannerAndroid, 3000);
+    setTimeout(renderInstallBannerAndroid, 1500);
   }
 });
 
 // iOS Safari: mostrar instrucciones manuales
 if(isIOS() && !isStandalone() && !installDismissed()){
-  setTimeout(renderInstallBannerIOS, 3000);
+  setTimeout(renderInstallBannerIOS, 1500);
 }
 
 // Confirmar instalación exitosa (app abierta en standalone)
