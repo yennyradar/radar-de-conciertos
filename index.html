@@ -659,6 +659,39 @@ footer.fab-wrap .inner{width:100%;max-width:var(--maxw);display:flex;justify-con
   box-shadow:0 8px 20px rgba(0,0,0,.5);white-space:nowrap;
 }
 .toast[hidden]{display:none;}
+
+/* ═══ DÍA DEL CONCIERTO ═══ */
+#concertDayModal{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:55;display:flex;align-items:flex-end;justify-content:center;}
+#concertDayModal[hidden]{display:none;}
+.cday-sheet{width:100%;max-width:var(--maxw);background:var(--bg-elevated);border-radius:24px 24px 0 0;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:slide-up .32s cubic-bezier(.22,1,.36,1);}
+.cday-handle{width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;}
+.cday-top-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 0;}
+.cday-top-label{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(90deg,var(--teal),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.cday-close{background:none;border:none;color:var(--text-dimmer);font-size:26px;cursor:pointer;line-height:1;padding:2px 6px;}
+.cday-close:hover{color:var(--text);}
+.cday-header{padding:10px 16px 0;display:flex;gap:14px;align-items:center;}
+.cday-mascot{font-size:46px;flex-shrink:0;animation:radar-dance .65s ease-in-out infinite alternate;}
+.cday-meta{flex:1;}
+.cday-title{font-size:16px;font-weight:800;margin:0 0 2px;color:var(--text);line-height:1.25;}
+.cday-venue{font-size:12px;color:var(--text-dim);margin:0 0 4px;}
+.cday-countdown{font-size:13px;font-weight:700;margin:0;}
+.cday-date{font-size:11px;color:var(--text-dimmer);margin:3px 0 0;}
+.cday-sections{padding:12px 16px 48px;}
+.cday-sep{font-size:10px;text-transform:uppercase;letter-spacing:.09em;font-weight:800;color:var(--text-dimmer);margin:14px 0 7px;display:flex;align-items:center;gap:8px;}
+.cday-sep::after{content:'';flex:1;height:1px;background:var(--border);}
+.cday-links{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.cday-link{display:flex;align-items:center;justify-content:center;gap:5px;text-decoration:none;font-size:12px;font-weight:600;background:var(--bg-card);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 8px;transition:border-color .15s,background .15s;}
+.cday-link:hover{border-color:var(--accent);background:var(--accent-dim);}
+.cday-link.full{grid-column:1/-1;}
+.cday-link.buy{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(168,85,247,.35);padding:13px 8px;font-size:13px;font-weight:800;}
+.cday-tip{font-size:12px;color:var(--text-dim);margin:6px 0 0;line-height:1.4;}
+.weather-block{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;}
+.weather-icon{font-size:34px;line-height:1;}
+.weather-temp{font-size:20px;font-weight:800;}
+.weather-desc{font-size:12px;color:var(--text-dim);margin-top:2px;}
+.weather-note{font-size:12px;color:var(--text-dimmer);}
+.btn-plan{display:block;width:100%;margin-top:8px;background:rgba(6,182,212,.1);color:var(--teal);border:1px solid rgba(6,182,212,.28);border-radius:12px;font-size:12.5px;font-weight:700;padding:10px;cursor:pointer;text-align:center;transition:background .15s,border-color .15s;}
+.btn-plan:hover{background:rgba(6,182,212,.2);border-color:var(--teal);}
 </style>
 </head>
 <body>
@@ -799,6 +832,27 @@ footer.fab-wrap .inner{width:100%;max-width:var(--maxw);display:flex;justify-con
         <button class="btn-cancel" id="alarmCancelBtn">Cancelar</button>
         <button class="btn-save" id="alarmConfirmBtn">Activar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DÍA DEL CONCIERTO -->
+  <div id="concertDayModal" hidden>
+    <div class="cday-sheet">
+      <div class="cday-handle"></div>
+      <div class="cday-top-bar">
+        <span class="cday-top-label">📅 Planifica tu salida</span>
+        <button class="cday-close" id="concertDayCloseBtn">×</button>
+      </div>
+      <div class="cday-header">
+        <span class="cday-mascot" id="cdayMascot">🐱</span>
+        <div class="cday-meta">
+          <p class="cday-title" id="cdayTitle"></p>
+          <p class="cday-venue" id="cdayVenue"></p>
+          <p class="cday-countdown" id="cdayCountdown"></p>
+          <p class="cday-date" id="cdayDate"></p>
+        </div>
+      </div>
+      <div class="cday-sections" id="cdaySections"></div>
     </div>
   </div>
 
@@ -1457,6 +1511,7 @@ function renderList(){
             ${!countdown&&!c.price_note?`<span style="font-size:11px;color:var(--text-dimmer)">${formatDateTime(c.starts_at)}</span>`:""}
           </div>
           <div class="card-stars" data-id="${c.id}">${stars}</div>
+          <button class="btn-plan" data-cid="${c.id}">📅 Planificar mi salida</button>
           <a href="${escapeHtml(c.ticket_url)}" target="_blank" rel="noopener"
             class="buy-btn" onclick="launchConfetti(this)">🎟 Comprar entradas</a>
           ${currentSession?`
@@ -1496,6 +1551,15 @@ function renderList(){
         showToast("🗑 Concierto eliminado");
         await fetchConcerts();
       }catch(err){ showToast("Error al eliminar. Intenta de nuevo."); }
+    });
+  });
+
+  // Planificar salida
+  container.querySelectorAll(".btn-plan").forEach(btn=>{
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      const c=concerts.find(x=>x.id===btn.dataset.cid);
+      if(c) openConcertDay(c);
     });
   });
 
@@ -1871,6 +1935,120 @@ window.addEventListener("error",e=>{
 });
 window.addEventListener("unhandledrejection",e=>{
   console.error("App promise error:",e.reason);
+});
+
+/* ═══════════════════════════════════════════════
+   DÍA DEL CONCIERTO
+═══════════════════════════════════════════════ */
+const WMO={0:"☀️ Cielo despejado",1:"🌤 Mayormente despejado",2:"⛅ Parcialmente nublado",3:"☁️ Nublado",45:"🌫 Neblina",48:"🌫 Neblina helada",51:"🌦 Llovizna leve",53:"🌦 Llovizna",55:"🌧 Llovizna intensa",61:"🌧 Lluvia leve",63:"🌧 Lluvia moderada",65:"🌧 Lluvia intensa",71:"🌨 Nieve leve",73:"🌨 Nieve moderada",75:"❄️ Nieve intensa",80:"🌦 Chubascos",81:"🌧 Chubascos moderados",82:"⛈ Chubascos fuertes",95:"⛈ Tormenta",96:"⛈ Tormenta c/granizo",99:"⛈ Tormenta severa"};
+
+async function fetchWeather(lat,lng,date){
+  try{
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=America%2FSantiago&start_date=${date}&end_date=${date}`);
+    if(!r.ok) return null;
+    const d=await r.json();
+    if(!d.daily?.weathercode?.length) return null;
+    return {code:d.daily.weathercode[0],max:Math.round(d.daily.temperature_2m_max[0]),min:Math.round(d.daily.temperature_2m_min[0])};
+  }catch(e){return null;}
+}
+
+async function openConcertDay(c){
+  const modal=document.getElementById("concertDayModal");
+  const status=getStatus(c);
+  document.getElementById("cdayTitle").textContent=c.name;
+  document.getElementById("cdayVenue").textContent="📍 "+c.venue.split(" - ")[0];
+  const cd=status==="proximamente"?countdownLabel(c.starts_at):null;
+  const cdEl=document.getElementById("cdayCountdown");
+  cdEl.textContent=status==="en_vivo"?"🔴 EN VIVO AHORA":status==="finalizado"?"Finalizado":cd?"⏳ "+cd:"";
+  cdEl.style.color=status==="en_vivo"?"var(--live)":status==="finalizado"?"var(--text-dimmer)":"var(--upcoming)";
+  document.getElementById("cdayDate").textContent=formatDateTime(c.starts_at);
+  document.getElementById("cdayMascot").textContent=status==="en_vivo"?"🕺":status==="finalizado"?"😴":"🐱";
+
+  const lat=c.lat,lng=c.lng;
+  const carUrl=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+  const transitUrl=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=transit`;
+  const walkUrl=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
+  const parkingUrl=`https://www.google.com/maps/search/estacionamiento/@${lat},${lng},15z`;
+  const barUrl=`https://www.google.com/maps/search/bar+pub+cerveceria/@${lat},${lng},15z`;
+  const restUrl=`https://www.google.com/maps/search/restaurante+comida/@${lat},${lng},15z`;
+  const cafeUrl=`https://www.google.com/maps/search/cafe+cafeteria/@${lat},${lng},15z`;
+  const hotelUrl=`https://www.google.com/maps/search/hotel+hostal/@${lat},${lng},14z`;
+
+  document.getElementById("cdaySections").innerHTML=`
+    <p class="cday-sep">🌤 Clima el día del show</p>
+    <div id="cdayWeather" class="weather-block"><span class="weather-note">Cargando pronóstico...</span></div>
+
+    <p class="cday-sep">🗺 Cómo llegar al recinto</p>
+    <div class="cday-links">
+      <a class="cday-link" href="${carUrl}" target="_blank" rel="noopener">🚗 En auto</a>
+      <a class="cday-link" href="${transitUrl}" target="_blank" rel="noopener">🚌 Transporte</a>
+      <a class="cday-link" href="${walkUrl}" target="_blank" rel="noopener">🚶 A pie</a>
+      <a class="cday-link" href="https://www.recorrido.cl/" target="_blank" rel="noopener">🚍 Bus regional</a>
+    </div>
+
+    <p class="cday-sep">🅿️ Estacionamiento</p>
+    <div class="cday-links">
+      <a class="cday-link full" href="${parkingUrl}" target="_blank" rel="noopener">🅿️ Ver opciones de estacionamiento cerca</a>
+    </div>
+    ${c.parking_note?`<p class="cday-tip">ℹ️ ${escapeHtml(c.parking_note)}</p>`:""}
+
+    <p class="cday-sep">🍺 Previa y bares</p>
+    <div class="cday-links">
+      <a class="cday-link full" href="${barUrl}" target="_blank" rel="noopener">🍺 Ver bares y pubs cerca del recinto</a>
+    </div>
+    ${c.nearby_tips?`<p class="cday-tip">💡 ${escapeHtml(c.nearby_tips)}</p>`:""}
+
+    <p class="cday-sep">🍽 Dónde comer</p>
+    <div class="cday-links">
+      <a class="cday-link" href="${restUrl}" target="_blank" rel="noopener">🍽 Restaurantes</a>
+      <a class="cday-link" href="${cafeUrl}" target="_blank" rel="noopener">☕ Cafeterías</a>
+    </div>
+
+    <p class="cday-sep">🏨 Dónde alojarme</p>
+    <div class="cday-links">
+      <a class="cday-link full" href="${hotelUrl}" target="_blank" rel="noopener">🏨 Ver hoteles y hostales cerca</a>
+    </div>
+
+    <p class="cday-sep">🎟 Tu entrada</p>
+    <div class="cday-links">
+      <a class="cday-link buy full" href="${escapeHtml(c.ticket_url)}" target="_blank" rel="noopener">🎟 Comprar entradas</a>
+    </div>
+  `;
+
+  modal.hidden=false;
+  document.body.style.overflow="hidden";
+
+  // Clima con Open-Meteo (gratis, sin API key)
+  const date=c.starts_at.slice(0,10);
+  const diffDays=Math.ceil((new Date(date)-new Date())/(1000*60*60*24));
+  const wEl=document.getElementById("cdayWeather");
+  if(diffDays>=-1 && diffDays<=16){
+    const w=await fetchWeather(lat,lng,date);
+    if(w){
+      const wmo=WMO[w.code]||"🌡 Pronóstico";
+      const spIdx=wmo.indexOf(" ");
+      const icon=wmo.slice(0,spIdx);
+      const desc=wmo.slice(spIdx+1);
+      wEl.innerHTML=`<span class="weather-icon">${icon}</span><div><div class="weather-temp">${w.max}°C <span style="font-size:13px;font-weight:500;color:var(--text-dimmer)">/ ${w.min}°C</span></div><div class="weather-desc">${desc}</div></div>`;
+    }else{
+      wEl.innerHTML=`<span class="weather-note">Pronóstico no disponible para esta fecha</span>`;
+    }
+  }else if(diffDays>16){
+    wEl.innerHTML=`<span class="weather-note">Disponible 16 días antes del evento</span>`;
+  }else{
+    wEl.innerHTML=`<span class="weather-note">El evento ya finalizó</span>`;
+  }
+}
+
+document.getElementById("concertDayModal").addEventListener("click",e=>{
+  if(e.target===document.getElementById("concertDayModal")){
+    document.getElementById("concertDayModal").hidden=true;
+    document.body.style.overflow="";
+  }
+});
+document.getElementById("concertDayCloseBtn").addEventListener("click",()=>{
+  document.getElementById("concertDayModal").hidden=true;
+  document.body.style.overflow="";
 });
 
 /* ═══════════════════════════════════════════════
