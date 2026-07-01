@@ -642,6 +642,61 @@ footer.fab-wrap .inner{width:100%;max-width:var(--maxw);display:flex;justify-con
 /* ═══════════════════════════════════════════════
    BANNER DE INSTALACIÓN
 ═══════════════════════════════════════════════ */
+/* ═══ PANTALLA DE BIENVENIDA ═══ */
+#welcomeScreen{
+  position:fixed;inset:0;z-index:999;
+  background:linear-gradient(160deg,#050010 0%,#0d0020 50%,#050018 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 24px;text-align:center;overflow:hidden;
+}
+#welcomeScreen[hidden]{display:none;}
+.welcome-radar{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;pointer-events:none;}
+.welcome-ring{position:absolute;border-radius:50%;border:1px solid rgba(168,85,247,.25);top:50%;left:50%;transform:translate(-50%,-50%);animation:welcomeRing 3s ease-out infinite;}
+.welcome-ring:nth-child(1){width:100px;height:100px;}
+.welcome-ring:nth-child(2){width:200px;height:200px;animation-delay:1s;}
+.welcome-ring:nth-child(3){width:320px;height:320px;animation-delay:2s;}
+.welcome-ring:nth-child(4){width:460px;height:460px;animation-delay:3s;}
+@keyframes welcomeRing{0%{opacity:.7;}100%{opacity:0;transform:translate(-50%,-50%) scale(1.05);}}
+.welcome-content{position:relative;z-index:2;max-width:360px;}
+.welcome-dot{width:16px;height:16px;border-radius:50%;background:rgba(168,85,247,1);box-shadow:0 0 20px rgba(168,85,247,.8);margin:0 auto 20px;animation:pulse 1.8s infinite;}
+.welcome-title{font-size:clamp(28px,7vw,40px);font-weight:900;line-height:1.1;margin-bottom:12px;color:#fff;}
+.welcome-title em{font-style:normal;background:linear-gradient(135deg,#fff,#ec4899,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.welcome-sub{font-size:15px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:36px;}
+.welcome-btn-install{display:block;width:100%;padding:16px;background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff;border:none;border-radius:16px;font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 8px 30px rgba(168,85,247,.4);margin-bottom:12px;transition:transform .15s;}
+.welcome-btn-install:hover{transform:scale(1.02);}
+.welcome-btn-skip{display:block;width:100%;padding:13px;background:transparent;color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1);border-radius:16px;font-size:14px;font-weight:600;cursor:pointer;transition:border-color .2s,color .2s;}
+.welcome-btn-skip:hover{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.6);}
+.welcome-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:32px;}
+.welcome-tag{font-size:11px;font-weight:600;padding:5px 10px;border-radius:20px;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);color:rgba(255,255,255,.7);}
+
+/* ═══ PANTALLA INSTRUCCIONES ═══ */
+#installStepsScreen{
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(0,0,0,.9);
+  display:flex;align-items:flex-end;justify-content:center;
+}
+#installStepsScreen[hidden]{display:none;}
+.install-steps-sheet{
+  width:100%;max-width:460px;
+  background:#0d0020;
+  border-radius:24px 24px 0 0;
+  border-top:1px solid rgba(168,85,247,.3);
+  padding:20px 20px 48px;
+  animation:slide-up .3s cubic-bezier(.22,1,.36,1);
+  max-height:85vh;overflow-y:auto;
+}
+.install-steps-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 20px;}
+.install-steps-title{font-size:18px;font-weight:900;color:#fff;margin-bottom:6px;}
+.install-steps-sub{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:20px;}
+.install-os-tabs{display:flex;gap:8px;margin-bottom:20px;}
+.install-os-tab{flex:1;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;font-size:13px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;}
+.install-os-tab.active{background:rgba(168,85,247,.2);border-color:rgba(168,85,247,.5);color:#fff;}
+.install-step-item{display:flex;gap:14px;align-items:flex-start;padding:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:14px;margin-bottom:10px;}
+.install-step-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff;font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.install-step-t{font-size:13px;font-weight:700;color:#fff;margin:0 0 3px;}
+.install-step-d{font-size:12px;color:rgba(255,255,255,.5);margin:0;line-height:1.5;}
+.install-steps-close{display:block;width:100%;margin-top:16px;padding:13px;background:transparent;color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1);border-radius:14px;font-size:14px;font-weight:600;cursor:pointer;}
+
 #installBanner{
   position:fixed;bottom:0;left:0;right:0;
   display:flex;justify-content:center;
@@ -948,6 +1003,46 @@ footer.fab-wrap .inner{width:100%;max-width:var(--maxw);display:flex;justify-con
       <button id="addBtn" title="Agregar concierto">+</button>
     </div>
   </footer>
+
+  <!-- PANTALLA DE BIENVENIDA -->
+  <div id="welcomeScreen" hidden>
+    <div class="welcome-radar">
+      <div class="welcome-ring"></div>
+      <div class="welcome-ring"></div>
+      <div class="welcome-ring"></div>
+      <div class="welcome-ring"></div>
+    </div>
+    <div class="welcome-content">
+      <div class="welcome-dot"></div>
+      <h1 class="welcome-title">Descubre conciertos<br>en <em>tiempo real</em></h1>
+      <p class="welcome-sub">Mapa interactivo con todos los shows de Chile. Gratis, sin registro y sin App Store.</p>
+      <div class="welcome-tags">
+        <span class="welcome-tag">🎸 Rock</span>
+        <span class="welcome-tag">🎵 Pop</span>
+        <span class="welcome-tag">🎛 Electrónica</span>
+        <span class="welcome-tag">🎺 Jazz</span>
+        <span class="welcome-tag">🥁 Metal</span>
+        <span class="welcome-tag">🎤 Cumbia</span>
+      </div>
+      <button class="welcome-btn-install" id="welcomeInstallBtn">📲 Instalar gratis</button>
+      <button class="welcome-btn-skip" id="welcomeSkipBtn">Explorar sin instalar →</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA INSTRUCCIONES DE INSTALACIÓN -->
+  <div id="installStepsScreen" hidden>
+    <div class="install-steps-sheet">
+      <div class="install-steps-handle"></div>
+      <p class="install-steps-title">Instala Radar en tu celular</p>
+      <p class="install-steps-sub">Sin App Store · Sin Google Play · 100% gratis</p>
+      <div class="install-os-tabs">
+        <button class="install-os-tab active" id="tabIOS" onclick="showInstallSteps('ios')">🍎 iPhone</button>
+        <button class="install-os-tab" id="tabAndroid" onclick="showInstallSteps('android')">🤖 Android</button>
+      </div>
+      <div id="installStepsList"></div>
+      <button class="install-steps-close" id="installStepsCloseBtn">Cerrar</button>
+    </div>
+  </div>
 
   <!-- MODAL: PROPONER EVENTO (público) -->
   <div id="submitModal" hidden>
@@ -2897,6 +2992,68 @@ function init(){
   track('app_open');
 }
 init();
+
+/* ═══ BIENVENIDA — solo usuarios nuevos ═══ */
+(function(){
+  const welcome=document.getElementById('welcomeScreen');
+  const stepsScreen=document.getElementById('installStepsScreen');
+  const stepsList=document.getElementById('installStepsList');
+
+  const STEPS_IOS=[
+    {t:'Abre este link en Safari',d:'Si lo abriste desde WhatsApp o Instagram, toca los 3 puntos ··· y elige "Abrir en Safari".'},
+    {t:'Toca el botón Compartir ⬆️',d:'Es el ícono con flecha hacia arriba en la barra inferior de Safari.'},
+    {t:'Toca "Añadir a pantalla de inicio"',d:'Baja en el menú hasta encontrar esta opción.'},
+    {t:'Toca "Añadir" y listo 🎸',d:'El ícono de Radar aparecerá en tu pantalla de inicio como cualquier app.'},
+  ];
+  const STEPS_ANDROID=[
+    {t:'Abre este link en Chrome',d:'Si lo abriste desde otra app, copia el link radarconcierto.github.io y pégalo en Chrome.'},
+    {t:'Toca los 3 puntos ⋮',d:'Están arriba a la derecha de la pantalla de Chrome.'},
+    {t:'Toca "Agregar a pantalla de inicio"',d:'En algunos Android puede aparecer como "Instalar app".'},
+    {t:'Toca "Agregar" y listo 🎸',d:'Radar queda instalado en tu celular en segundos.'},
+  ];
+
+  window.showInstallSteps=function(os){
+    const steps=os==='ios'?STEPS_IOS:STEPS_ANDROID;
+    document.getElementById('tabIOS').className='install-os-tab'+(os==='ios'?' active':'');
+    document.getElementById('tabAndroid').className='install-os-tab'+(os==='android'?' active':'');
+    stepsList.innerHTML=steps.map((s,i)=>`
+      <div class="install-step-item">
+        <div class="install-step-num">${i+1}</div>
+        <div><p class="install-step-t">${s.t}</p><p class="install-step-d">${s.d}</p></div>
+      </div>`).join('');
+  };
+
+  function openSteps(){
+    const os=/iphone|ipad|ipod/i.test(navigator.userAgent)?'ios':'android';
+    showInstallSteps(os);
+    stepsScreen.hidden=false;
+  }
+
+  function dismissWelcome(){
+    welcome.hidden=true;
+    document.body.style.overflow='';
+    localStorage.setItem('radar_welcomed','1');
+    track('welcome_skip');
+  }
+
+  // Mostrar solo si: no es standalone, no ha visitado antes
+  const alreadySeen=localStorage.getItem('radar_welcomed');
+  const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  if(!alreadySeen && !standalone){
+    welcome.hidden=false;
+    document.body.style.overflow='hidden';
+  }
+
+  document.getElementById('welcomeInstallBtn').addEventListener('click',()=>{
+    openSteps();
+    track('welcome_install_tap');
+  });
+  document.getElementById('welcomeSkipBtn').addEventListener('click',dismissWelcome);
+  document.getElementById('installStepsCloseBtn').addEventListener('click',()=>{
+    stepsScreen.hidden=true;
+    dismissWelcome();
+  });
+})();
 </script>
 </body>
 </html>
