@@ -171,6 +171,9 @@ const HOME_URLS=[
   /^https?:\/\/www\.portalticket\.cl\/eventos?\/?$/,
   /^https?:\/\/www\.portalticket\.cl\/conciertos?\/?$/,
   /^https?:\/\/www\.portalticket\.cl\/musica\/?$/,
+  /^https?:\/\/www\.ticketmaster\.cl\/?$/,
+  /^https?:\/\/www\.ticketmaster\.cl\/musica\/?$/,
+  /^https?:\/\/www\.ticketmaster\.cl\/conciertos?\/?$/,
 ];
 function validEventUrl(url:string):string {
   if(!url) return "";
