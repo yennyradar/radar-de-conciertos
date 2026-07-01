@@ -15,15 +15,15 @@
 <meta property="og:site_name" content="Radar de Conciertos" />
 <meta property="og:title" content="Radar de Conciertos 🎵 La app de Chile" />
 <meta property="og:description" content="50+ conciertos en vivo, mapa interactivo, entradas con un clic y alarmas. Instálala gratis directo desde tu celular — sin App Store ni Play Store." />
-<meta property="og:image" content="https://radarconcierto.github.io/icons/icon-512.png" />
-<meta property="og:image:width" content="512" />
-<meta property="og:image:height" content="512" />
+<meta property="og:image" content="https://radarconcierto.github.io/images/og-share.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
 <meta property="og:locale" content="es_CL" />
 <!-- Twitter / X -->
-<meta name="twitter:card" content="summary" />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Radar de Conciertos 🎵 La app de Chile" />
 <meta name="twitter:description" content="50+ conciertos en vivo, mapa interactivo y alarmas. Sin App Store." />
-<meta name="twitter:image" content="https://radarconcierto.github.io/icons/icon-512.png" />
+<meta name="twitter:image" content="https://radarconcierto.github.io/images/og-share.png" />
 <link rel="manifest" href="manifest.json" />
 <link rel="icon" href="icons/icon-192.png" />
 <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -47,8 +47,8 @@
   --accent-dim:rgba(168,85,247,.18);
   --live:#f43f5e;
   --live-dim:rgba(244,63,94,.18);
-  --upcoming:#fbbf24;
-  --upcoming-dim:rgba(251,191,36,.15);
+  --upcoming:#a855f7;
+  --upcoming-dim:rgba(168,85,247,.15);
   --finished:#4a4a7a;
   --teal:#06b6d4;
   --orange:#f97316;
@@ -56,7 +56,7 @@
   --maxw:480px;
   --shadow:0 8px 32px rgba(0,0,0,.6);
   --glow-live:0 0 20px rgba(244,63,94,.4);
-  --glow-upcoming:0 0 20px rgba(251,191,36,.3);
+  --glow-upcoming:0 0 20px rgba(168,85,247,.3);
   --glow-accent:0 0 20px rgba(168,85,247,.35);
 }
 
@@ -75,7 +75,7 @@ body.day-mode{
   --accent2:#db2777;
   --accent-dim:rgba(124,58,237,.12);
   --live:#e11d48;
-  --upcoming:#d97706;
+  --upcoming:#9333ea;
   --shadow:0 4px 20px rgba(0,0,0,.1);
   --glow-live:none;
   --glow-upcoming:none;
@@ -201,22 +201,61 @@ body.day-mode .search-bar{background:rgba(255,255,255,.7);}
 .leaflet-popup-tip{background:var(--bg-card);}
 .leaflet-popup-content{margin:0;width:270px !important;}
 .leaflet-popup-close-button{color:var(--text-dim) !important;font-size:18px !important;top:8px !important;right:8px !important;}
-.pin{position:relative;width:24px;height:24px;}
-.pin-ping{
-  position:absolute;top:0;left:0;width:24px;height:24px;border-radius:50%;
-  background:var(--accent);opacity:.65;
-  animation:pinping 1.6s cubic-bezier(0,0,.2,1) infinite;
+/* ═══ PINES DE MAPA ═══ */
+.pin{position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;}
+
+/* EN VIVO — ondas de radar rojas */
+.pin-radar-ring{
+  position:absolute;border-radius:50%;border:2px solid var(--live);
+  animation:radarExpand 2s ease-out infinite;
 }
-@keyframes pinping{
-  0%{transform:scale(.4);opacity:.75;}
-  75%,100%{transform:scale(1.9);opacity:0;}
+.pin-radar-ring:nth-child(2){animation-delay:.6s;}
+.pin-radar-ring:nth-child(3){animation-delay:1.2s;}
+@keyframes radarExpand{
+  0%{width:12px;height:12px;opacity:.9;top:12px;left:12px;}
+  100%{width:60px;height:60px;opacity:0;top:-12px;left:-12px;}
 }
 .pin-dot{
-  position:absolute;top:5px;left:5px;width:14px;height:14px;border-radius:50%;
-  background:var(--accent);box-shadow:0 0 0 2px #000;
+  position:relative;z-index:2;width:14px;height:14px;border-radius:50%;
+  background:var(--live);box-shadow:0 0 8px 2px rgba(244,63,94,.6),0 0 0 2px #000;
 }
-.pin--upcoming .pin-dot{background:var(--upcoming);}
-.pin--idle .pin-dot{background:var(--finished);}
+.pin-label-live{
+  position:absolute;top:-22px;left:50%;transform:translateX(-50%);
+  background:var(--live);color:#fff;font-size:9px;font-weight:800;letter-spacing:.05em;
+  padding:2px 5px;border-radius:4px;white-space:nowrap;
+  box-shadow:0 2px 6px rgba(244,63,94,.5);
+  animation:liveLabelPulse 1.5s ease-in-out infinite;
+}
+.pin-label-live::after{
+  content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:4px solid transparent;border-top-color:var(--live);
+}
+@keyframes liveLabelPulse{
+  0%,100%{opacity:1;}50%{opacity:.6;}
+}
+
+/* PRÓXIMAMENTE — morado, pulso suave */
+.pin--upcoming .pin-dot{
+  background:linear-gradient(135deg,#a855f7,#ec4899);
+  box-shadow:0 0 10px 2px rgba(168,85,247,.55),0 0 0 2px #000;
+}
+.pin--upcoming .pin-ping{
+  position:absolute;top:6px;left:6px;width:24px;height:24px;border-radius:50%;
+  background:rgba(168,85,247,.4);
+  animation:pingUpcoming 2.4s cubic-bezier(0,0,.2,1) infinite;
+}
+@keyframes pingUpcoming{
+  0%{transform:scale(.5);opacity:.8;}
+  80%,100%{transform:scale(2.2);opacity:0;}
+}
+
+/* FINALIZADO — gris, sin animación, más pequeño */
+.pin--idle{opacity:.5;}
+.pin--idle .pin-dot{
+  width:10px;height:10px;
+  background:var(--finished);
+  box-shadow:0 0 0 2px rgba(74,74,122,.4);
+}
 .user-dot{
   width:16px;height:16px;border-radius:50%;
   background:#3b82f6;border:3px solid #fff;
@@ -233,7 +272,7 @@ body.day-mode .search-bar{background:rgba(255,255,255,.7);}
   font-size:36px;border-radius:var(--radius) var(--radius) 0 0;
 }
 .pop-header-bar.live-bar{background:rgba(220,38,38,.2);}
-.pop-header-bar.upcoming-bar{background:rgba(234,179,8,.15);}
+.pop-header-bar.upcoming-bar{background:rgba(168,85,247,.15);}
 .pop-header-bar.finished-bar{background:rgba(82,82,91,.15);}
 .pop-body{padding:11px 12px 12px;}
 .pop-name{font-size:15px;font-weight:700;margin:0 0 3px;}
@@ -305,7 +344,7 @@ main{flex:1;padding:12px 12px 100px;}
 }
 .card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:var(--glow-accent);}
 .card.card-live{border-color:var(--live);box-shadow:var(--glow-live);}
-.card.card-upcoming{border-color:rgba(251,191,36,.35);}
+.card.card-upcoming{border-color:rgba(168,85,247,.4);}
 
 /* Poster hero */
 .card-poster-wrap{position:relative;width:100%;height:160px;overflow:hidden;background:var(--bg-elevated);}
@@ -316,7 +355,7 @@ main{flex:1;padding:12px 12px 100px;}
   font-size:56px;
 }
 .card-poster-wrap .poster-placeholder.live-ph{background:linear-gradient(135deg,#2d0a14,#4a0a1e);}
-.card-poster-wrap .poster-placeholder.upcoming-ph{background:linear-gradient(135deg,#1a1400,#2d2400);}
+.card-poster-wrap .poster-placeholder.upcoming-ph{background:linear-gradient(135deg,#0e0018,#1a0030);}
 .card-poster-wrap .poster-placeholder.finished-ph{background:linear-gradient(135deg,#0f0f1a,#1a1a2e);}
 .poster-gradient{
   position:absolute;bottom:0;left:0;right:0;height:80px;
@@ -330,7 +369,7 @@ main{flex:1;padding:12px 12px 100px;}
   padding:4px 10px;border-radius:20px;backdrop-filter:blur(12px);
 }
 .poster-status-badge.live{background:rgba(244,63,94,.85);color:#fff;box-shadow:0 0 12px rgba(244,63,94,.5);}
-.poster-status-badge.upcoming{background:rgba(251,191,36,.85);color:#000;}
+.poster-status-badge.upcoming{background:linear-gradient(135deg,rgba(168,85,247,.9),rgba(236,72,153,.85));color:#fff;}
 .poster-status-badge.finished{background:rgba(74,74,122,.7);color:#a0a0d0;}
 .poster-status-badge .bdot{width:5px;height:5px;border-radius:50%;background:currentColor;}
 
@@ -701,6 +740,33 @@ footer.fab-wrap .inner{width:100%;max-width:var(--maxw);display:flex;justify-con
 .cday-link.full{grid-column:1/-1;}
 .cday-link.buy{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(168,85,247,.35);padding:13px 8px;font-size:13px;font-weight:800;}
 .cday-tip{font-size:12px;color:var(--text-dim);margin:6px 0 0;line-height:1.4;}
+.radar-answer{margin-top:8px;}
+.radar-answer-intro{font-size:12px;color:var(--text-dim);margin:0 0 8px;display:flex;align-items:center;gap:6px;}
+/* Tarjeta de socio */
+.socio-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:8px;position:relative;overflow:hidden;transition:border-color .15s;}
+.socio-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(168,85,247,.05),rgba(236,72,153,.03));pointer-events:none;}
+.socio-card.plan-destacado{border-color:rgba(168,85,247,.5);box-shadow:0 0 12px rgba(168,85,247,.15);}
+.socio-card.plan-premium{border-color:rgba(236,72,153,.35);}
+.socio-card-top{display:flex;align-items:flex-start;gap:10px;}
+.socio-img{width:48px;height:48px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--bg-elevated);}
+.socio-img-placeholder{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#1a0030,#2d0050);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.socio-info{flex:1;min-width:0;}
+.socio-name{font-size:14px;font-weight:800;color:var(--text);margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.socio-tipo{font-size:11px;color:var(--text-dimmer);margin:0 0 4px;}
+.socio-badges{display:flex;gap:4px;flex-wrap:wrap;}
+.socio-plan-badge{font-size:9px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:4px;text-transform:uppercase;}
+.socio-plan-badge.destacado{background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff;}
+.socio-plan-badge.premium{background:rgba(236,72,153,.2);color:#ec4899;border:1px solid rgba(236,72,153,.3);}
+.socio-plan-badge.basico{background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.2);}
+.socio-sponsored{font-size:9px;color:var(--text-dimmer);padding:2px 5px;border:1px solid var(--border);border-radius:4px;}
+.socio-promo{font-size:12px;color:var(--text-dim);margin:7px 0 0;line-height:1.45;padding:6px 8px;background:rgba(168,85,247,.06);border-left:2px solid rgba(168,85,247,.4);border-radius:0 6px 6px 0;}
+.socio-actions{display:flex;gap:6px;margin-top:9px;}
+.socio-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;text-decoration:none;font-size:11.5px;font-weight:700;padding:8px 6px;border-radius:8px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);transition:border-color .15s;}
+.socio-btn:hover{border-color:var(--accent);}
+.socio-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:#fff;}
+.radar-no-socios{text-align:center;padding:18px 16px;background:var(--bg-card);border:1px dashed var(--border);border-radius:14px;}
+.radar-no-socios p{font-size:13px;color:var(--text-dim);margin:0 0 10px;line-height:1.5;}
+.radar-unirse-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--accent);border:1px solid rgba(168,85,247,.35);background:rgba(168,85,247,.08);padding:8px 14px;border-radius:10px;cursor:pointer;text-decoration:none;}
 .weather-block{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;}
 .weather-icon{font-size:34px;line-height:1;}
 .weather-temp{font-size:20px;font-weight:800;}
@@ -981,6 +1047,7 @@ footer.fab-wrap .inner{width:100%;max-width:var(--maxw);display:flex;justify-con
 
         <label>Link para comprar entradas *</label>
         <input type="url" id="f_ticket" required placeholder="https://..." />
+        <p class="hint">⚠️ Pega el link directo del evento (la página específica con fecha y botón de compra), no la portada general de la ticketera.</p>
 
         <label>Precio / nota de precio (opcional)</label>
         <input type="text" id="f_price" placeholder="Desde $15.000" />
@@ -1187,13 +1254,13 @@ const KNOWN_VENUES = [
   {n:"Estadio Santa Laura",lat:-33.4380,lng:-70.6560,city:"santiago"},
   {n:"Teatro Municipal de Santiago",lat:-33.4420,lng:-70.6520,city:"santiago"},
   // Valparaíso
-  {n:"Teatro Trotamundos",lat:-33.0490,lng:-71.6180,city:"valparaiso",ticket:"https://www.passline.com/eventos"},
-  {n:"Club Segundo Piso",lat:-33.0460,lng:-71.6140,city:"valparaiso",ticket:"https://www.portalticket.cl"},
-  {n:"Teatro Mauri",lat:-33.0455,lng:-71.6195,city:"valparaiso",ticket:"https://www.portalticket.cl"},
-  {n:"Mauri SCD",lat:-33.0455,lng:-71.6195,city:"valparaiso",ticket:"https://www.portalticket.cl"},
-  {n:"Sala Rivoli",lat:-33.0465,lng:-71.6160,city:"valparaiso",ticket:"https://www.passline.com/eventos"},
-  {n:"VTP - Valparaíso Teatro del Puerto",lat:-33.0380,lng:-71.6280,city:"valparaiso",ticket:"https://www.passline.com/eventos"},
-  {n:"Teatro Municipal de Valparaíso",lat:-33.0472,lng:-71.6127,city:"valparaiso",ticket:"https://www.portalticket.cl"},
+  {n:"Teatro Trotamundos",lat:-33.0490,lng:-71.6180,city:"valparaiso",platform:"Passline"},
+  {n:"Club Segundo Piso",lat:-33.0460,lng:-71.6140,city:"valparaiso",platform:"PortalTicket"},
+  {n:"Teatro Mauri",lat:-33.0455,lng:-71.6195,city:"valparaiso",platform:"PortalTicket"},
+  {n:"Mauri SCD",lat:-33.0455,lng:-71.6195,city:"valparaiso",platform:"PortalTicket"},
+  {n:"Sala Rivoli",lat:-33.0465,lng:-71.6160,city:"valparaiso",platform:"Passline"},
+  {n:"VTP - Valparaíso Teatro del Puerto",lat:-33.0380,lng:-71.6280,city:"valparaiso",platform:"Passline"},
+  {n:"Teatro Municipal de Valparaíso",lat:-33.0472,lng:-71.6127,city:"valparaiso",platform:"PortalTicket"},
   // Viña del Mar
   {n:"Anfiteatro de Viña del Mar",lat:-33.0153,lng:-71.5500,city:"vina del mar"},
   {n:"Estadio Sausalito",lat:-33.0310,lng:-71.5500,city:"vina del mar"},
@@ -1559,11 +1626,15 @@ function initMap(){
 }
 
 function pinIcon(status){
-  const cls=status==="en_vivo"?"":status==="proximamente"?" pin--upcoming":" pin--idle";
-  const html=status!=="finalizado"
-    ?`<div class="pin${cls}"><span class="pin-ping"></span><span class="pin-dot"></span></div>`
-    :`<div class="pin pin--idle"><span class="pin-dot"></span></div>`;
-  return L.divIcon({html,className:"",iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]});
+  let html;
+  if(status==="en_vivo"){
+    html=`<div class="pin"><span class="pin-radar-ring"></span><span class="pin-radar-ring"></span><span class="pin-radar-ring"></span><span class="pin-dot"></span><span class="pin-label-live">EN VIVO</span></div>`;
+  } else if(status==="proximamente"){
+    html=`<div class="pin pin--upcoming"><span class="pin-ping"></span><span class="pin-dot"></span></div>`;
+  } else {
+    html=`<div class="pin pin--idle"><span class="pin-dot"></span></div>`;
+  }
+  return L.divIcon({html,className:"",iconSize:[36,36],iconAnchor:[18,18],popupAnchor:[0,-20]});
 }
 
 function popupHtml(c,status,distKm){
@@ -1771,7 +1842,7 @@ function renderList(){
     container.innerHTML=`<div class="empty-state"><span class="empty-mascot">🐱</span>No hay conciertos para esta región.<br><small>Prueba con otra región o agrega uno con el botón +</small></div>`;
     return;
   }
-  const labels={en_vivo:"🔴 En vivo ahora",proximamente:"🟡 Próximamente",finalizado:"⚪ Finalizado"};
+  const labels={en_vivo:"🔴 En vivo ahora",proximamente:"🟣 Próximamente",finalizado:"⚪ Finalizado"};
   let lastGroup=null, html="";
   items.forEach(({c,status,dist},idx)=>{
     if(status!==lastGroup){
@@ -2059,18 +2130,48 @@ document.getElementById("f_venue").addEventListener("input",function(){
     if(!document.getElementById("f_lat").value) document.getElementById("f_lat").value=match.lat;
     if(!document.getElementById("f_lng").value) document.getElementById("f_lng").value=match.lng;
     document.getElementById("f_city").value=match.city;
-    if(match.ticket && !document.getElementById("f_ticket").value)
-      document.getElementById("f_ticket").value=match.ticket;
-    const plat=match.ticket?.includes("passline")?"Passline":match.ticket?.includes("portalticket")?"PortalTicket":"";
-    showToast("📍 "+match.n+(plat?" · "+plat:"")+" — coordenadas listas");
+    // No autocompletamos el link de entradas: nunca debe quedar la portada
+    // genérica de la ticketera guardada como si fuera el link del evento.
+    const plat=match.platform||"";
+    showToast("📍 "+match.n+(plat?" · entradas por "+plat+" (pega el link del evento)":"")+" — coordenadas listas");
   }
 });
 
 document.getElementById("addBtn").addEventListener("click",openModal);
 document.getElementById("cancelBtn").addEventListener("click",closeModal);
 
+// Evita guardar la portada general de una ticketera como si fuera el link
+// del evento (causaba que "Comprar entradas" mandara siempre a la home).
+const TICKET_HOMEPAGE_PATTERNS=[
+  /^https?:\/\/(www\.)?puntoticket\.com\/?(\?.*)?$/i,
+  /^https?:\/\/(www\.)?puntoticket\.com\/categoria/i,
+  /^https?:\/\/(www\.)?eventbrite\.cl\/d\//i,
+  /^https?:\/\/(www\.)?eventbrite\.cl\/?(\?.*)?$/i,
+  /^https?:\/\/(www\.)?passline\.com\/eventos?\/?(\?.*)?$/i,
+  /^https?:\/\/(www\.)?passline\.com\/?(\?.*)?$/i,
+  /^https?:\/\/(www\.)?portalticket\.cl\/?(\?.*)?$/i,
+  /^https?:\/\/(www\.)?portalticket\.cl\/(eventos?|conciertos?|musica)\/?(\?.*)?$/i,
+  /^https?:\/\/(www\.)?ticketmaster\.cl\/?(\?.*)?$/i,
+  /^https?:\/\/(www\.)?ticketmaster\.cl\/(musica|conciertos)\/?(\?.*)?$/i,
+];
+function looksLikeTicketHomepage(url){
+  if(!url) return false;
+  if(TICKET_HOMEPAGE_PATTERNS.some(p=>p.test(url))) return true;
+  try{
+    const u=new URL(url);
+    if((u.pathname===""||u.pathname==="/") && !u.search) return true; // dominio raíz, sin ruta = casi seguro portada
+  }catch(e){/* URL inválida la maneja el input type=url */}
+  return false;
+}
+
 document.getElementById("concertForm").addEventListener("submit",async e=>{
   e.preventDefault();
+  const ticketVal=document.getElementById("f_ticket").value.trim();
+  if(looksLikeTicketHomepage(ticketVal)){
+    showToast("⚠️ Ese link parece ser la portada de la ticketera, no el evento. Pega el link directo del evento.");
+    document.getElementById("f_ticket").focus();
+    return;
+  }
   const btn=document.getElementById("saveBtn");
   btn.disabled=true;btn.textContent="Guardando...";
   const payload={
@@ -2349,17 +2450,12 @@ async function openConcertDay(c){
     </div>
     ${c.parking_note?`<p class="cday-tip">ℹ️ ${escapeHtml(c.parking_note)}</p>`:""}
 
-    <p class="cday-sep">🍺 Previa y bares</p>
+    <p class="cday-sep">🤖 Pregunta a Radar</p>
     <div class="cday-links">
-      <a class="cday-link full" href="${barUrl}" target="_blank" rel="noopener">🍺 Ver bares y pubs cerca del recinto</a>
+      <button type="button" class="cday-link full" onclick="askRadarNearby(this,'bar')">🍻 ¿A qué bar me recomiendas ir?</button>
+      <button type="button" class="cday-link full" onclick="askRadarNearby(this,'restaurante')">🍽 ¿Dónde comer antes del show?</button>
     </div>
-    ${c.nearby_tips?`<p class="cday-tip">💡 ${escapeHtml(c.nearby_tips)}</p>`:""}
-
-    <p class="cday-sep">🍽 Dónde comer</p>
-    <div class="cday-links">
-      <a class="cday-link" href="${restUrl}" target="_blank" rel="noopener">🍽 Restaurantes</a>
-      <a class="cday-link" href="${cafeUrl}" target="_blank" rel="noopener">☕ Cafeterías</a>
-    </div>
+    <div id="cdayNearbyAnswer"></div>
 
     <p class="cday-sep">🏨 Dónde alojarme</p>
     <div class="cday-links">
@@ -2411,6 +2507,94 @@ document.getElementById("concertDayCloseBtn").addEventListener("click",()=>{
 /* ═══════════════════════════════════════════════
    INICIO
 ═══════════════════════════════════════════════ */
+/* ═══ RADAR ASISTENTE — Programa de Socios ═══ */
+const TIPO_LABELS={
+  bar:'🍻 bares',restaurante:'🍽 restaurantes',hotel:'🏨 hoteles',
+  estacionamiento:'🅿️ estacionamientos',transporte:'🚌 transporte',
+  tienda:'🎸 tiendas',discoteca:'🎉 discotecas',productora:'🎤 productoras'
+};
+const TIPO_ICONS={bar:'🍻',restaurante:'🍽',hotel:'🏨',estacionamiento:'🅿️',transporte:'🚌',tienda:'🎸',discoteca:'🎉',productora:'🎤'};
+
+function socioCardHtml(s){
+  const planCls=s.plan==='destacado'?'destacado':s.plan==='premium'?'premium':'basico';
+  const planLabel=s.plan==='destacado'?'⭐ Destacado':s.plan==='premium'?'Premium':'Socio Radar';
+  const img=s.imagen_url
+    ?`<img class="socio-img" src="${escapeHtml(s.imagen_url)}" alt="${escapeHtml(s.nombre)}" loading="lazy">`
+    :`<div class="socio-img-placeholder">${TIPO_ICONS[s.tipo]||'🏪'}</div>`;
+  const mapsUrl=s.lat&&s.lng?`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`:`https://www.google.com/maps/search/${encodeURIComponent(s.nombre)}`;
+  const webBtn=s.website?`<a class="socio-btn" href="${escapeHtml(s.website)}" target="_blank" rel="noopener">🌐 Ver más</a>`:'';
+  const igBtn=s.instagram?`<a class="socio-btn" href="https://instagram.com/${escapeHtml(s.instagram.replace('@',''))}" target="_blank" rel="noopener">📸 Instagram</a>`:'';
+  const promoHtml=s.promo_texto?`<p class="socio-promo">🎁 ${escapeHtml(s.promo_texto)}</p>`:'';
+  return `
+  <div class="socio-card plan-${planCls}">
+    <div class="socio-card-top">
+      ${img}
+      <div class="socio-info">
+        <p class="socio-name">${escapeHtml(s.nombre)}</p>
+        <p class="socio-tipo">${escapeHtml(s.direccion||s.ciudad||'')}</p>
+        <div class="socio-badges">
+          <span class="socio-plan-badge ${planCls}">${planLabel}</span>
+          <span class="socio-sponsored">Patrocinado</span>
+        </div>
+      </div>
+    </div>
+    ${promoHtml}
+    <div class="socio-actions">
+      <a class="socio-btn primary" href="${mapsUrl}" target="_blank" rel="noopener">📍 Cómo llegar</a>
+      ${webBtn}${igBtn}
+    </div>
+  </div>`;
+}
+
+async function askRadarNearby(btn,tipo){
+  const sheet=btn.closest('[data-cid]');
+  const cid=sheet?sheet.dataset.cid:null;
+  const concert=cid?concerts.find(x=>x.id==cid):null;
+  const ciudad=concert?concert.city:null;
+  const el=document.getElementById('cdayNearbyAnswer');
+  const originalText=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='🔍 Consultando socios Radar...';
+
+  try{
+    let query=supa.from('socios_radar')
+      .select('*')
+      .eq('activo',true)
+      .order('plan',{ascending:false}) // destacado > premium > basico
+      .limit(5);
+    // Filtra por tipo (bar cubre también 'bar' y 'discoteca'; restaurante cubre 'restaurante')
+    if(tipo==='bar') query=query.in('tipo',['bar','discoteca']);
+    else if(tipo==='restaurante') query=query.eq('tipo','restaurante');
+    else query=query.eq('tipo',tipo);
+    if(ciudad) query=query.eq('ciudad',ciudad);
+
+    const {data,error}=await query;
+
+    const label=TIPO_LABELS[tipo]||tipo;
+    if(error||!data||data.length===0){
+      el.innerHTML=`
+      <div class="radar-answer">
+        <p class="radar-answer-intro">🤖 <strong>Radar dice:</strong></p>
+        <div class="radar-no-socios">
+          <p>Aún no tenemos ${label} asociados cerca de este recinto.<br>¿Tienes un negocio? ¡Únete al <strong>Programa de Socios Radar</strong> y llega a miles de asistentes!</p>
+          <a class="radar-unirse-btn" href="mailto:hola@radarconciertos.cl?subject=Quiero ser socio Radar">✨ Quiero ser socio</a>
+        </div>
+      </div>`;
+    } else {
+      const cards=data.map(socioCardHtml).join('');
+      el.innerHTML=`
+      <div class="radar-answer">
+        <p class="radar-answer-intro">🤖 <strong>Radar recomienda</strong> — solo establecimientos del Programa de Socios:</p>
+        ${cards}
+      </div>`;
+    }
+  } catch(e){
+    el.innerHTML=`<p style="font-size:12px;color:var(--text-dimmer);margin:8px 0">No se pudo conectar. Intenta de nuevo.</p>`;
+  }
+  btn.textContent=originalText;
+  btn.disabled=false;
+}
+
 /* ═══ PROPONER EVENTO (desactivado — sistema automático) ═══ */
 (function(){
   const modal=document.getElementById("submitModal");
@@ -2432,6 +2616,12 @@ document.getElementById("concertDayCloseBtn").addEventListener("click",()=>{
 
   form.addEventListener("submit",async e=>{
     e.preventDefault();
+    const seTicketVal=document.getElementById("se_ticket").value.trim();
+    if(looksLikeTicketHomepage(seTicketVal)){
+      showToast("⚠️ Ese link parece ser la portada de la ticketera, no el evento. Pega el link directo del evento.");
+      document.getElementById("se_ticket").focus();
+      return;
+    }
     const btn=form.querySelector(".btn-submit-event");
     btn.textContent="Enviando...";btn.disabled=true;
     const payload={
